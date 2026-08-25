@@ -13,7 +13,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 1 | Project Idea | ✅ Done |
 | 2 | User Interface | ✅ Done |
 | 3 | Backend Architecture | ✅ Done |
-| 4 | API Structure | 🟨 In Progress |
+| 4 | API Structure | ✅ Done |
 | 5 | Database Design | ⬜ Not Started |
 | 6 | Authentication & Security | ⬜ Not Started |
 | 7 | Performance & Optimization | ⬜ Not Started |
@@ -134,22 +134,22 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 4. API Structure — 🟨 In Progress
+## 4. API Structure — ✅ Done
 
 - [x] a - `GET /api/v1/ads/serve?placement={code}` — route + empty handler
 - [x] b - `POST /api/v1/ads/{id}/impression` — route + empty handler
 - [x] c - `POST /api/v1/ads/{id}/click` — route + empty handler
 - [x] d - `POST /api/v1/advertiser/ads` — route + empty handler
 - [x] e - `PATCH /api/v1/advertiser/ads/{id}` — route + empty handler
-- [ ] f - `GET /api/v1/admin/ads?status=pending` — route + empty handler
-- [ ] g - `PATCH /api/v1/admin/ads/{id}/approve` — route + empty handler
-- [ ] h - `PATCH /api/v1/admin/ads/{id}/reject` — route + empty handler
-- [ ] i - `GET /api/v1/admin/apps` — route + empty handler
-- [ ] j - `POST /api/v1/admin/apps` — route + empty handler
-- [ ] k - `PATCH /api/v1/admin/apps/{id}` — route + empty handler
-- [ ] l - Wrap every handler's return in the `{ success, data | error }` envelope
-- [ ] m - Prefix every route file with `/api/v1/`
-- [ ] n - Split routes into `routes/api-public.php` (serve/track) vs `routes/api-auth.php` (advertiser/admin)
+- [x] f - `GET /api/v1/admin/ads?status=pending` — route + empty handler
+- [x] g - `PATCH /api/v1/admin/ads/{id}/approve` — route + empty handler
+- [x] h - `PATCH /api/v1/admin/ads/{id}/reject` — route + empty handler
+- [x] i - `GET /api/v1/admin/apps` — route + empty handler
+- [x] j - `POST /api/v1/admin/apps` — route + empty handler
+- [x] k - `PATCH /api/v1/admin/apps/{id}` — route + empty handler
+- [x] l - Wrap every handler's return in the `{ success, data | error }` envelope
+- [x] m - Prefix every route file with `/api/v1/`
+- [x] n - Split routes into `routes/api-public.php` (serve/track) vs `routes/api-auth.php` (advertiser/admin)
 
 ---
 

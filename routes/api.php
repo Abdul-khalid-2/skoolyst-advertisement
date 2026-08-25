@@ -7,8 +7,9 @@
  * Adding a route to one module (e.g. Ads) never touches another
  * module's routes file — each module owns and edits only its own file.
  *
- * Each app/{Module}/routes.php returns an array of route definitions
- * (currently empty arrays — filled in as Section 4 endpoints land).
+ * This merged table is the shared source both `routes/api-public.php`
+ * and `routes/api-auth.php` filter from — the public API entry point
+ * (`public/index.php`) requires those two files, not this one directly.
  */
 
 $routes = [];

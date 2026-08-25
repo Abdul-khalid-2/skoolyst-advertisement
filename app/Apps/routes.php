@@ -4,8 +4,30 @@
  * Apps module routes.
  *
  * Merged into the main router at boot (see router boot code, 3.1.j).
- * Endpoints from Section 4 (e.g. /api/v1/admin/apps) are added here
- * as they're implemented.
+ * All paths are prefixed `/api/v1/` (Section 4 rule). `auth => true`
+ * means the request pipeline requires a valid admin session before
+ * dispatch (role check itself lands in Section 6).
  */
 
-return [];
+use App\Apps\AppController;
+
+return [
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/admin/apps',
+        'auth' => true,
+        'handler' => [AppController::class, 'index'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/admin/apps',
+        'auth' => true,
+        'handler' => [AppController::class, 'store'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/apps/{id}',
+        'auth' => true,
+        'handler' => [AppController::class, 'update'],
+    ],
+];

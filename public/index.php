@@ -15,7 +15,10 @@ require __DIR__ . '/../core/RateLimiter.php';
 use Core\Auth\Middleware;
 use Core\RateLimiter;
 
-$routes = require __DIR__ . '/../routes/api.php';
+$routes = array_merge(
+    require __DIR__ . '/../routes/api-public.php',
+    require __DIR__ . '/../routes/api-auth.php'
+);
 
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
