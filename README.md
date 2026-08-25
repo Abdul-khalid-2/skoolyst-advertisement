@@ -14,7 +14,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 2 | User Interface | ✅ Done |
 | 3 | Backend Architecture | ✅ Done |
 | 4 | API Structure | ✅ Done |
-| 5 | Database Design | ⬜ Not Started |
+| 5 | Database Design | 🟨 In Progress |
 | 6 | Authentication & Security | ⬜ Not Started |
 | 7 | Performance & Optimization | ⬜ Not Started |
 | 8 | SEO | ⬜ Not Started |
@@ -153,16 +153,16 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 5. Database Design — ⬜ Not Started
+## 5. Database Design — 🟨 In Progress
 
 ### 5.1 Schema
-- [ ] a - Migration: `users` table
-- [ ] b - Migration: `apps` table
-- [ ] c - Migration: `placements` table
-- [ ] d - Migration: `ads` table
-- [ ] e - Migration: `ad_impressions` table
-- [ ] f - Migration: `ad_clicks` table
-- [ ] g - Migration: `api_keys` table
+- [x] a - Migration: `users` table
+- [x] b - Migration: `apps` table
+- [x] c - Migration: `placements` table
+- [x] d - Migration: `ads` table
+- [x] e - Migration: `ad_impressions` table
+- [x] f - Migration: `ad_clicks` table
+- [x] g - Migration: `api_keys` table
 
 ### 5.2 Indexing plan
 - [ ] a - Add `ads (status, placement_id)` composite index
