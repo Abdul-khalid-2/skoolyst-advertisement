@@ -99,11 +99,11 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] d - Create `app/Ads/AdRepository.php` (empty class stub)
 - [x] e - Create `app/Ads/AdValidator.php` (empty class stub)
 - [x] f - Create `app/Ads/routes.php` (empty array/return)
-- [ ] g - Create `app/Apps/` folder + `AppController.php`, `AppModel.php`, `routes.php` stubs
-- [ ] h - Create `app/Auth/` folder + `AuthController.php`, `UserModel.php`, `routes.php` stubs
-- [ ] i - Create `app/Admin/` folder + `ModerationController.php`, `routes.php` stubs
-- [ ] j - Write the router boot code that `require`s each module's `routes.php`
-- [ ] k - Write one code-review checklist line: "no module queries another module's tables directly"
+- [x] g - Create `app/Apps/` folder + `AppController.php`, `AppModel.php`, `routes.php` stubs
+- [x] h - Create `app/Auth/` folder + `AuthController.php`, `UserModel.php`, `routes.php` stubs
+- [x] i - Create `app/Admin/` folder + `ModerationController.php`, `routes.php` stubs
+- [x] j - Write the router boot code that `require`s each module's `routes.php`
+- [x] k - Write one code-review checklist line: "no module queries another module's tables directly"
 
 ### 3.2 Centralized, non-repeated code
 - [ ] a - Create `core/` folder (empty, with a `.gitkeep`)
