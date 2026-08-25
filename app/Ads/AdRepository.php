@@ -14,5 +14,15 @@ namespace App\Ads;
  */
 class AdRepository
 {
-    //
+    /**
+     * Example method only — demonstrates the pattern controllers use
+     * (call a repository method, get data back). Replaced by real
+     * query methods once the `ads` migration (5.1.d) lands.
+     *
+     * @return array<string, mixed>
+     */
+    public function ping(): array
+    {
+        return ['module' => 'Ads', 'status' => 'ok'];
+    }
 }

@@ -12,7 +12,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 |---|---|---|
 | 1 | Project Idea | ✅ Done |
 | 2 | User Interface | ✅ Done |
-| 3 | Backend Architecture | 🟨 In Progress |
+| 3 | Backend Architecture | ✅ Done |
 | 4 | API Structure | ⬜ Not Started |
 | 5 | Database Design | ⬜ Not Started |
 | 6 | Authentication & Security | ⬜ Not Started |
@@ -90,7 +90,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 3. Backend Architecture — 🟨 In Progress
+## 3. Backend Architecture — ✅ Done
 
 ### 3.1 One feature = one isolated folder
 - [x] a - Create `app/Ads/` folder (empty, with a `.gitkeep`)
@@ -124,13 +124,13 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] p - Create `core/Cache.php` — skeleton class, `get()`/`set()` methods (file-based)
 
 ### 3.3 Standard request lifecycle
-- [ ] a - Create `public/index.php` front controller (accepts any request, echoes "ok")
-- [ ] b - Wire the router into `public/index.php`
-- [ ] c - Wire the auth middleware into the request pipeline
-- [ ] d - Wire the rate-limit middleware into the request pipeline
-- [ ] e - Write one example controller method that calls a repository and returns `Response::success()`
-- [ ] f - Write the rule/comment: controllers stay thin, no query logic in controllers
-- [ ] g - Write the rule/comment: all query logic lives in Repositories only
+- [x] a - Create `public/index.php` front controller (accepts any request, echoes "ok")
+- [x] b - Wire the router into `public/index.php`
+- [x] c - Wire the auth middleware into the request pipeline
+- [x] d - Wire the rate-limit middleware into the request pipeline
+- [x] e - Write one example controller method that calls a repository and returns `Response::success()`
+- [x] f - Write the rule/comment: controllers stay thin, no query logic in controllers
+- [x] g - Write the rule/comment: all query logic lives in Repositories only
 
 ---
 
