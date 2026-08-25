@@ -112,16 +112,16 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] d - Add a second query-helper method to `core/Database.php` (e.g. `fetchOne()`)
 - [x] e - Create `core/Request.php` — read raw input (`$_POST`/JSON body) only
 - [x] f - Add sanitizing helpers to `core/Request.php`
-- [ ] g - Create `core/Response.php` — success-shape helper only (`{success:true, data}`)
-- [ ] h - Add error-shape helper to `core/Response.php` (`{success:false, error}`)
-- [ ] i - Create `core/Validator.php` — `required` rule only
-- [ ] j - Add `maxLength` rule to `core/Validator.php`
-- [ ] k - Add `url` rule to `core/Validator.php`
-- [ ] l - Add `date` rule to `core/Validator.php`
-- [ ] m - Create `core/Auth/Middleware.php` — session check only
-- [ ] n - Add token/API-key check to `core/Auth/Middleware.php`
-- [ ] o - Create `core/RateLimiter.php` — skeleton class, one `hit()` method
-- [ ] p - Create `core/Cache.php` — skeleton class, `get()`/`set()` methods (file-based)
+- [x] g - Create `core/Response.php` — success-shape helper only (`{success:true, data}`)
+- [x] h - Add error-shape helper to `core/Response.php` (`{success:false, error}`)
+- [x] i - Create `core/Validator.php` — `required` rule only
+- [x] j - Add `maxLength` rule to `core/Validator.php`
+- [x] k - Add `url` rule to `core/Validator.php`
+- [x] l - Add `date` rule to `core/Validator.php`
+- [x] m - Create `core/Auth/Middleware.php` — session check only
+- [x] n - Add token/API-key check to `core/Auth/Middleware.php`
+- [x] o - Create `core/RateLimiter.php` — skeleton class, one `hit()` method
+- [x] p - Create `core/Cache.php` — skeleton class, `get()`/`set()` methods (file-based)
 
 ### 3.3 Standard request lifecycle
 - [ ] a - Create `public/index.php` front controller (accepts any request, echoes "ok")
