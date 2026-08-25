@@ -6,9 +6,33 @@ This document is the build plan: what the product is, how the UI is structured, 
 
 ---
 
+## Progress Status
+
+Each section below is implemented one at a time — a section isn't started until the previous one is marked ✅ Done, so nothing gets half-built in parallel.
+
+| # | Section | Status |
+|---|---|---|
+| 1 | Project Idea | ✅ Done |
+| 2 | User Interface | ⬜ Not Started |
+| 3 | Backend Architecture | ⬜ Not Started |
+| 4 | API Structure | ⬜ Not Started |
+| 5 | Database Design | ⬜ Not Started |
+| 6 | Authentication & Security | ⬜ Not Started |
+| 7 | Performance & Optimization | ⬜ Not Started |
+| 8 | SEO | ⬜ Not Started |
+| 9 | Folder Structure | ⬜ Not Started |
+| 10 | Build Order / Roadmap | ⬜ Not Started |
+| 11 | Tech Stack & Environment Setup | ⬜ Not Started |
+| 12 | Coding Standards & Git Workflow | ⬜ Not Started |
+| 13 | Testing & QA | ⬜ Not Started |
+| 14 | Deployment | ⬜ Not Started |
+| 15 | Future Enhancements | ⬜ Not Started |
+
+---
+
 ## Table of Contents
 
-1. [Project Idea](#1-project-idea)
+1. [Project Idea](#1-project-idea) — ✅ Done
 2. [User Interface](#2-user-interface)
 3. [Backend Architecture](#3-backend-architecture)
 4. [API Structure](#4-api-structure)
@@ -26,7 +50,9 @@ This document is the build plan: what the product is, how the UI is structured, 
 
 ---
 
-## 1. Project Idea
+## 1. Project Idea ✅ Done
+
+**Status:** already decided and documented — no further work needed on this section. The idea below is exactly what sections 2–15 are built against; if it ever changes, every later section needs re-checking against the new definition.
 
 **Problem:** Each Skoolyst property currently has no shared way to run sponsored ads. Adding ads to a new app today would mean writing the ad logic, storage, and rendering again from scratch for that app.
 
