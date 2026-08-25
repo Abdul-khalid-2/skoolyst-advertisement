@@ -106,12 +106,12 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] k - Write one code-review checklist line: "no module queries another module's tables directly"
 
 ### 3.2 Centralized, non-repeated code
-- [ ] a - Create `core/` folder (empty, with a `.gitkeep`)
-- [ ] b - Create `core/Database.php` — PDO connection setup only (no query helpers yet)
-- [ ] c - Add one query-helper method to `core/Database.php` (e.g. `query()`)
-- [ ] d - Add a second query-helper method to `core/Database.php` (e.g. `fetchOne()`)
-- [ ] e - Create `core/Request.php` — read raw input (`$_POST`/JSON body) only
-- [ ] f - Add sanitizing helpers to `core/Request.php`
+- [x] a - Create `core/` folder (empty, with a `.gitkeep`)
+- [x] b - Create `core/Database.php` — PDO connection setup only (no query helpers yet)
+- [x] c - Add one query-helper method to `core/Database.php` (e.g. `query()`)
+- [x] d - Add a second query-helper method to `core/Database.php` (e.g. `fetchOne()`)
+- [x] e - Create `core/Request.php` — read raw input (`$_POST`/JSON body) only
+- [x] f - Add sanitizing helpers to `core/Request.php`
 - [ ] g - Create `core/Response.php` — success-shape helper only (`{success:true, data}`)
 - [ ] h - Add error-shape helper to `core/Response.php` (`{success:false, error}`)
 - [ ] i - Create `core/Validator.php` — `required` rule only
