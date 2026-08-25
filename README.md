@@ -12,7 +12,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 |---|---|---|
 | 1 | Project Idea | ✅ Done |
 | 2 | User Interface | ✅ Done |
-| 3 | Backend Architecture | ⬜ Not Started |
+| 3 | Backend Architecture | 🟨 In Progress |
 | 4 | API Structure | ⬜ Not Started |
 | 5 | Database Design | ⬜ Not Started |
 | 6 | Authentication & Security | ⬜ Not Started |
@@ -90,15 +90,15 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 3. Backend Architecture — ⬜ Not Started
+## 3. Backend Architecture — 🟨 In Progress
 
 ### 3.1 One feature = one isolated folder
-- [ ] a - Create `app/Ads/` folder (empty, with a `.gitkeep`)
-- [ ] b - Create `app/Ads/AdController.php` (empty class stub)
-- [ ] c - Create `app/Ads/AdModel.php` (empty class stub)
-- [ ] d - Create `app/Ads/AdRepository.php` (empty class stub)
-- [ ] e - Create `app/Ads/AdValidator.php` (empty class stub)
-- [ ] f - Create `app/Ads/routes.php` (empty array/return)
+- [x] a - Create `app/Ads/` folder (empty, with a `.gitkeep`)
+- [x] b - Create `app/Ads/AdController.php` (empty class stub)
+- [x] c - Create `app/Ads/AdModel.php` (empty class stub)
+- [x] d - Create `app/Ads/AdRepository.php` (empty class stub)
+- [x] e - Create `app/Ads/AdValidator.php` (empty class stub)
+- [x] f - Create `app/Ads/routes.php` (empty array/return)
 - [ ] g - Create `app/Apps/` folder + `AppController.php`, `AppModel.php`, `routes.php` stubs
 - [ ] h - Create `app/Auth/` folder + `AuthController.php`, `UserModel.php`, `routes.php` stubs
 - [ ] i - Create `app/Admin/` folder + `ModerationController.php`, `routes.php` stubs
