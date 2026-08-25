@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="ad3title">
+  <title id="ad3title">Educational Book Store advertisement banner</title>
+  <defs>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a2d52"/>
+      <stop offset="100%" stop-color="#0f4077"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" fill="url(#g3)"/>
+  <g transform="translate(210,130)">
+    <rect x="0" y="30" width="60" height="180" rx="4" fill="#d97706"/>
+    <rect x="65" y="10" width="60" height="200" rx="4" fill="#ffffff"/>
+    <rect x="130" y="40" width="60" height="170" rx="4" fill="#4361ee"/>
+    <rect x="195" y="0" width="60" height="210" rx="4" fill="#00cfa8" opacity="0.9"/>
+  </g>
+  <rect x="150" y="360" width="340" height="10" rx="5" fill="#ffffff" opacity="0.25"/>
+</svg>

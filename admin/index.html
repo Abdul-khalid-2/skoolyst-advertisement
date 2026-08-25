@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Overview — Skoolyst Ads</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body class="db-body admin-theme">
+
+<div class="db-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="db-sidebar db-sidebar--admin">
+    <a href="index.html" class="db-sidebar__brand">
+      <span class="sk-brand-dot" aria-hidden="true"></span>
+      Skoolyst Ads
+      <span class="db-sidebar__mode">Admin</span>
+    </a>
+
+    <nav class="db-nav">
+      <div class="db-nav-label">Overview</div>
+      <a href="index.html" class="db-nav-link active"><i class="bi bi-speedometer2"></i> Overview</a>
+
+      <div class="db-nav-label">Moderation</div>
+      <a href="ads.html" class="db-nav-link"><i class="bi bi-shield-check"></i> All Ads <span class="db-nav-soon" id="sidebar-pending-count">1 new</span></a>
+
+      <div class="db-nav-label">Platform</div>
+      <a href="apps.html" class="db-nav-link"><i class="bi bi-grid-3x3-gap-fill"></i> Connected Apps</a>
+      <a href="#" class="db-nav-link disabled"><i class="bi bi-people-fill"></i> Advertisers <span class="db-nav-soon">Soon</span></a>
+      <a href="../api-docs.html" class="db-nav-link"><i class="bi bi-code-slash"></i> API Docs</a>
+    </nav>
+
+    <div class="db-sidebar__footer">
+      <a href="../dashboard/index.html" class="db-switcher">
+        <i class="bi bi-megaphone-fill"></i> Switch to Advertiser View <i class="bi bi-chevron-right"></i>
+      </a>
+      <div class="db-user-card">
+        <div class="db-avatar">KK</div>
+        <div>
+          <p class="db-user-card__name mb-0">Khalid Khan</p>
+          <p class="db-user-card__role mb-0">Platform Admin</p>
+        </div>
+        <a href="../index.html" class="db-user-card__logout" title="Log out"><i class="bi bi-box-arrow-right"></i></a>
+      </div>
+    </div>
+  </aside>
+  <div class="db-sidebar-backdrop"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="db-main">
+    <header class="db-topbar">
+      <button type="button" class="db-sidebar-toggle" data-sidebar-toggle aria-label="Toggle menu">
+        <i class="bi bi-list"></i>
+      </button>
+      <div>
+        <h1 class="db-topbar__title">Admin Overview</h1>
+      </div>
+      <div class="db-search">
+        <i class="bi bi-search"></i>
+        <input type="search" placeholder="Search ads, advertisers, apps…" aria-label="Search">
+      </div>
+      <div class="db-topbar__actions">
+        <button type="button" class="db-icon-btn" title="Notifications"><i class="bi bi-bell"></i><span class="db-dot"></span></button>
+        <a href="ads.html" class="btn btn-admin-primary btn-sm px-3 text-white">
+          <i class="bi bi-shield-check me-1"></i> Review Queue
+        </a>
+      </div>
+    </header>
+
+    <main class="db-content">
+
+      <div class="db-page-head">
+        <div>
+          <h1>Platform Overview</h1>
+          <p>A birds-eye view of ad activity across every Skoolyst app.</p>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="db-stat">
+            <div class="db-stat__icon db-stat__icon--admin"><i class="bi bi-megaphone-fill"></i></div>
+            <div>
+              <p class="db-stat__label mb-0">Total Ads</p>
+              <p class="db-stat__value mb-0">7</p>
+              <span class="db-stat__delta db-stat__delta--flat">Across 5 apps</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="db-stat">
+            <div class="db-stat__icon db-stat__icon--warning"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+              <p class="db-stat__label mb-0">Pending Review</p>
+              <p class="db-stat__value mb-0">1</p>
+              <span class="db-stat__delta db-stat__delta--flat">Avg. review time: 6h</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="db-stat">
+            <div class="db-stat__icon db-stat__icon--secondary"><i class="bi bi-eye-fill"></i></div>
+            <div>
+              <p class="db-stat__label mb-0">Impressions (30d)</p>
+              <p class="db-stat__value mb-0">1.87M</p>
+              <span class="db-stat__delta db-stat__delta--up"><i class="bi bi-arrow-up-short"></i> 9.6% vs last month</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="db-stat">
+            <div class="db-stat__icon db-stat__icon--success"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+            <div>
+              <p class="db-stat__label mb-0">Connected Apps</p>
+              <p class="db-stat__value mb-0">5</p>
+              <span class="db-stat__delta db-stat__delta--flat">4 active &middot; 1 paused</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+          <div class="db-card h-100">
+            <div class="db-card__header">
+              <div>
+                <h3>Platform Impressions, Last 7 Days</h3>
+                <p>Sum of all placements, all apps</p>
+              </div>
+            </div>
+            <div class="db-card__body">
+              <div id="platform-chart" class="db-barchart"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="db-card h-100">
+            <div class="db-card__header">
+              <div>
+                <h3>Needs Attention</h3>
+                <p>Ads waiting on a decision</p>
+              </div>
+            </div>
+            <div class="db-card__body d-flex flex-column gap-3" id="attention-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="db-card">
+        <div class="db-card__header">
+          <div>
+            <h3>Top Performing Ads</h3>
+            <p>Ranked by clicks in the last 30 days</p>
+          </div>
+          <a href="ads.html" class="btn btn-sk-outline btn-sm">View All Ads</a>
+        </div>
+        <div class="db-table-wrap">
+          <table class="db-table">
+            <thead>
+              <tr>
+                <th>Ad</th>
+                <th>Status</th>
+                <th>Impressions</th>
+                <th>Clicks</th>
+                <th>CTR</th>
+                <th>Schedule</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="top-ads-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    SkoolystAdsUI.renderBarChart('platform-chart', [
+      { label: 'Mon', value: 241000 },
+      { label: 'Tue', value: 268000 },
+      { label: 'Wed', value: 252000 },
+      { label: 'Thu', value: 289000 },
+      { label: 'Fri', value: 301000 },
+      { label: 'Sat', value: 279000 },
+      { label: 'Sun', value: 246000 },
+    ]);
+
+    // Sort mock ads by clicks desc for the "top performing" table
+    SkoolystAdsMock.ads.sort(function (a, b) { return b.clicks - a.clicks; });
+    SkoolystAdsUI.renderAdsTable({
+      tbodyId: 'top-ads-body',
+      emptyId: null,
+      countId: null,
+      showAdvertiser: true,
+      showApprovalActions: false,
+      limit: 5,
+    });
+
+    // "Needs attention" — anything pending or rejected
+    const attention = SkoolystAdsMock.ads.filter(function (a) { return a.status === 'pending' || a.status === 'rejected'; });
+    const wrap = document.getElementById('attention-list');
+    if (!attention.length) {
+      wrap.innerHTML = '<p class="text-muted small mb-0">Nothing needs your attention right now.</p>';
+    } else {
+      wrap.innerHTML = attention.map(function (ad) {
+        const badge = ad.status === 'pending'
+          ? '<span class="badge-status badge-status--pending">Pending Review</span>'
+          : '<span class="badge-status badge-status--rejected">Rejected</span>';
+        return (
+          '<div class="d-flex align-items-start gap-2">' +
+            '<img src="' + ad.image + '" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex:0 0 auto;" alt="">' +
+            '<div class="flex-grow-1">' +
+              '<p class="mb-0 small fw-bold">' + ad.title + '</p>' +
+              '<p class="mb-1 small text-muted">' + ad.advertiser + '</p>' +
+              badge +
+            '</div>' +
+          '</div>'
+        );
+      }).join('<hr class="my-1">');
+    }
+  });
+</script>
+</body>
+</html>

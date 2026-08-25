@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skoolyst Ads — One Advertisement Service, Every Skoolyst App</title>
+  <meta name="description" content="Skoolyst Ads is the centralized advertisement engine powering Skoolyst, Skoolyst Social, Skoolyst Teachers, and connected partner apps.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============ NAVBAR ============ -->
+  <nav class="navbar navbar-expand-lg sk-navbar sticky-top py-3">
+    <div class="container container-xl">
+      <a class="navbar-brand sk-brand" href="#top">
+        <span class="sk-brand-dot" aria-hidden="true"></span>
+        Skoolyst
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#skNav" aria-controls="skNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="skNav">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="#top">Home</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="#schools">Schools</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="#teachers">Teachers</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="#parents">Parents</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="#students">Students</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="api-docs.html">API Docs</a></li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a href="dashboard/index.html" class="btn btn-sk-outline">Dashboard</a>
+          <a href="dashboard/create-ad.html" class="btn btn-sk-primary">Create an Ad</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header class="sk-hero" id="top">
+    <div class="container container-xl position-relative">
+      <div class="row">
+        <div class="col-lg-9">
+          <h1>Empowering Schools, Engaging Families</h1>
+          <p class="lead mt-3">One platform connecting schools, teachers, parents and students.</p>
+          <div class="d-flex flex-wrap gap-3 mt-4">
+            <a href="#" class="btn btn-sk-primary px-4 py-2">Get Started</a>
+            <a href="#advertisement-demo" class="btn btn-sk-ghost-light px-4 py-2">Explore Skoolyst</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN AD DEMONSTRATION ============ -->
+  <section class="sk-section" id="advertisement-demo">
+    <div class="container container-xl">
+      <div class="text-center mb-4">
+        <span class="sk-eyebrow">Live placement demo</span>
+        <h2 class="sk-section-title">A Sponsored Ad, Rendered Natively</h2>
+        <p class="sk-section-sub mx-auto mt-2">
+          This is what an advertisement looks like inside a Skoolyst page — styled to match the
+          surrounding content instead of feeling like a banner ad.
+        </p>
+      </div>
+
+      <div class="row justify-content-center">
+        <div class="col-lg-9">
+          <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+            <span id="main-ad-sponsored-label" class="sponsored-label" hidden>
+              <span class="pulse-dot" aria-hidden="true"></span>
+              Sponsored
+            </span>
+          </div>
+
+          <div id="main-ad-container" aria-live="polite"></div>
+
+          <div class="text-center mt-3">
+            <button type="button" id="load-another-ad" class="btn-load-another" aria-label="Load another sample ad">
+              <i class="bi bi-arrow-repeat"></i>
+              Load Another Ad
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACEMENT PREVIEWS ============ -->
+  <section class="sk-section sk-section-alt">
+    <div class="container container-xl">
+      <div class="text-center mb-4">
+        <span class="sk-eyebrow">Where ads can appear</span>
+        <h2 class="sk-section-title">Multiple Placements, One Feed</h2>
+        <p class="sk-section-sub mx-auto mt-2">
+          Every placement below is powered by the same ad, requested differently — the labels here
+          are for this demo only and never appear on the live site.
+        </p>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="placement-card">
+            <span class="placement-tag">Placement: home_top</span>
+            <div data-placement-container="home_top"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="placement-card">
+            <span class="placement-tag">Placement: home_sidebar</span>
+            <div data-placement-container="home_sidebar"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="placement-card">
+            <span class="placement-tag">Placement: blog_inline</span>
+            <div data-placement-container="blog_inline"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ API PREVIEW ============ -->
+  <section class="sk-section">
+    <div class="container container-xl">
+      <div class="text-center mb-4">
+        <span class="sk-eyebrow">For developers</span>
+        <h2 class="sk-section-title">Advertisement API Preview</h2>
+        <p class="sk-section-sub mx-auto mt-2">
+          Every placement above is a static preview of what this response will look like once
+          the AdEngine API is live. Nothing here makes a real network call.
+        </p>
+      </div>
+
+      <div class="row justify-content-center">
+        <div class="col-lg-9">
+          <div class="api-preview-wrap">
+            <div class="api-preview-header">
+              <div class="api-preview-dots"><span></span><span></span><span></span></div>
+              <span class="api-preview-endpoint">GET /api/v1/ads/serve?placement=home_top</span>
+            </div>
+            <pre class="api-preview-code"><code>{
+  <span class="tok-key">"success"</span>: <span class="tok-bool">true</span>,
+  <span class="tok-key">"request_id"</span>: <span class="tok-str">"req_8f2a1c9e"</span>,
+  <span class="tok-key">"placement"</span>: <span class="tok-str">"home_top"</span>,
+  <span class="tok-key">"ads"</span>: [
+    {
+      <span class="tok-key">"id"</span>: <span class="tok-str">"ad_1002"</span>,
+      <span class="tok-key">"title"</span>: <span class="tok-str">"Speak Confidently in 8 Weeks"</span>,
+      <span class="tok-key">"description"</span>: <span class="tok-str">"Small-group spoken English classes with weekend batches."</span>,
+      <span class="tok-key">"image_url"</span>: <span class="tok-str">"https://cdn.adds.skoolyst.com/ads/ad_1002.jpg"</span>,
+      <span class="tok-key">"cta_text"</span>: <span class="tok-str">"Book a Seat"</span>,
+      <span class="tok-key">"click_url"</span>: <span class="tok-str">"https://adds.skoolyst.com/r/ad_1002"</span>
+    }
+  ]
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INFO / CONNECTED APPS ============ -->
+  <section class="sk-section sk-section-alt">
+    <div class="container container-xl">
+      <div class="text-center mb-4">
+        <h2 class="sk-section-title">One Advertisement Service. Multiple Applications.</h2>
+        <p class="sk-section-sub mx-auto mt-2">
+          Skoolyst Ads manages every sponsored placement from a single dashboard, then serves it
+          to any connected app through one API — no more hardcoding ads into each site separately.
+        </p>
+      </div>
+
+      <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-6">
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">SK</div>
+            <p class="app-badge__name">Skoolyst</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">SS</div>
+            <p class="app-badge__name">Skoolyst Social</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">ST</div>
+            <p class="app-badge__name">Skoolyst Teachers</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">JF</div>
+            <p class="app-badge__name">Jaans Fabrics</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">SA</div>
+            <p class="app-badge__name">Safi India Autos</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="app-badge">
+            <div class="app-badge__icon">+</div>
+            <p class="app-badge__name">Other Apps</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="sk-footer">
+    <div class="container container-xl">
+      <div class="row gy-4">
+        <div class="col-md-5">
+          <h5>Skoolyst Ads</h5>
+          <p class="mt-2 mb-0" style="max-width: 360px;">
+            Centralized advertisement management for the whole Skoolyst family of apps.
+          </p>
+        </div>
+        <div class="col-md-3">
+          <h6 class="text-white-50 text-uppercase small mb-3" style="letter-spacing:.05em;">Links</h6>
+          <ul class="list-unstyled d-flex flex-column gap-2">
+            <li><a href="#top">Home</a></li>
+            <li><a href="dashboard/index.html">Advertiser Dashboard</a></li>
+            <li><a href="admin/index.html">Admin</a></li>
+            <li><a href="api-docs.html">API Docs</a></li>
+            <li><a href="#">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h6 class="text-white-50 text-uppercase small mb-3" style="letter-spacing:.05em;">Follow</h6>
+          <div class="d-flex gap-2">
+            <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+            <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="sk-footer-bottom text-center">
+        &copy; <span id="footer-year"></span> Skoolyst Ads. Part of the Skoolyst platform.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+  <script src="js/app.js"></script>
+</body>
+</html>
