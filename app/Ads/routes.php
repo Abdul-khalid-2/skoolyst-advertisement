@@ -4,8 +4,43 @@
  * Ads module routes.
  *
  * Merged into the main router at boot (see router boot code, 3.1.j).
- * Endpoints from Section 4 (e.g. /api/v1/ads/serve,
- * /api/v1/advertiser/ads) are added here as they're implemented.
+ * `auth` marks whether the request pipeline (public/index.php) must
+ * see a valid session or API key before dispatch. `{id}` in a path
+ * is a placeholder — param extraction is wired up when the router
+ * gains dynamic-segment matching.
  */
 
-return [];
+use App\Ads\AdController;
+
+return [
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/ads/serve',
+        'auth' => false,
+        'handler' => [AdController::class, 'serve'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/ads/{id}/impression',
+        'auth' => false,
+        'handler' => [AdController::class, 'impression'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/ads/{id}/click',
+        'auth' => false,
+        'handler' => [AdController::class, 'click'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/advertiser/ads',
+        'auth' => true,
+        'handler' => [AdController::class, 'store'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/advertiser/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'update'],
+    ],
+];

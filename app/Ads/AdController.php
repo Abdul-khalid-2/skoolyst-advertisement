@@ -27,4 +27,52 @@ class AdController
 
         Response::success($data);
     }
+
+    /**
+     * GET /api/v1/ads/serve?placement={code}
+     * Empty handler — query logic added once AdRepository has real
+     * ad-fetching methods (Section 5 schema required first).
+     */
+    public function serve(): void
+    {
+        Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/ads/{id}/impression
+     * Empty handler — logging added once ad_impressions table exists.
+     */
+    public function impression(): void
+    {
+        Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/ads/{id}/click
+     * Empty handler — logging added once ad_clicks table exists.
+     */
+    public function click(): void
+    {
+        Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/advertiser/ads
+     * Empty handler — validation (AdValidator) and creation added
+     * once the `ads` table exists.
+     */
+    public function store(): void
+    {
+        Response::success([]);
+    }
+
+    /**
+     * PATCH /api/v1/advertiser/ads/{id}
+     * Empty handler — validation (AdValidator) and update added
+     * once the `ads` table exists.
+     */
+    public function update(): void
+    {
+        Response::success([]);
+    }
 }
