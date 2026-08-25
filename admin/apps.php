@@ -1,91 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Connected Apps — Skoolyst Ads Admin</title>
+<?php
+require __DIR__ . '/../views/bootstrap.php';
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/dashboard.css">
-</head>
-<body class="db-body admin-theme">
+$pageTitle  = 'Connected Apps';
+$role       = 'admin';
+$activeNav  = 'admin-apps';
+$baseHref   = '../';
 
-<div class="db-shell">
+$topbarActions = '<button type="button" class="btn btn-admin-primary btn-sm px-3 text-white" data-bs-toggle="modal" data-bs-target="#new-app-modal"><i class="bi bi-plus-lg me-1"></i> Connect New App</button>';
 
-  <!-- ============ SIDEBAR ============ -->
-  <aside class="db-sidebar db-sidebar--admin">
-    <a href="index.html" class="db-sidebar__brand">
-      <span class="sk-brand-dot" aria-hidden="true"></span>
-      Skoolyst Ads
-      <span class="db-sidebar__mode">Admin</span>
-    </a>
-
-    <nav class="db-nav">
-      <div class="db-nav-label">Overview</div>
-      <a href="index.html" class="db-nav-link"><i class="bi bi-speedometer2"></i> Overview</a>
-
-      <div class="db-nav-label">Moderation</div>
-      <a href="ads.html" class="db-nav-link"><i class="bi bi-shield-check"></i> All Ads</a>
-
-      <div class="db-nav-label">Platform</div>
-      <a href="apps.html" class="db-nav-link active"><i class="bi bi-grid-3x3-gap-fill"></i> Connected Apps</a>
-      <a href="#" class="db-nav-link disabled"><i class="bi bi-people-fill"></i> Advertisers <span class="db-nav-soon">Soon</span></a>
-      <a href="../api-docs.html" class="db-nav-link"><i class="bi bi-code-slash"></i> API Docs</a>
-    </nav>
-
-    <div class="db-sidebar__footer">
-      <a href="../dashboard/index.html" class="db-switcher">
-        <i class="bi bi-megaphone-fill"></i> Switch to Advertiser View <i class="bi bi-chevron-right"></i>
-      </a>
-      <div class="db-user-card">
-        <div class="db-avatar">KK</div>
-        <div>
-          <p class="db-user-card__name mb-0">Khalid Khan</p>
-          <p class="db-user-card__role mb-0">Platform Admin</p>
-        </div>
-        <a href="../index.html" class="db-user-card__logout" title="Log out"><i class="bi bi-box-arrow-right"></i></a>
-      </div>
-    </div>
-  </aside>
-  <div class="db-sidebar-backdrop"></div>
-
-  <!-- ============ MAIN ============ -->
-  <div class="db-main">
-    <header class="db-topbar">
-      <button type="button" class="db-sidebar-toggle" data-sidebar-toggle aria-label="Toggle menu">
-        <i class="bi bi-list"></i>
-      </button>
-      <div>
-        <h1 class="db-topbar__title">Connected Apps</h1>
-      </div>
-      <div class="db-topbar__actions">
-        <button type="button" class="btn btn-admin-primary btn-sm px-3 text-white" data-bs-toggle="modal" data-bs-target="#new-app-modal">
-          <i class="bi bi-plus-lg me-1"></i> Connect New App
-        </button>
-      </div>
-    </header>
-
-    <main class="db-content">
-
-      <div class="db-page-head">
-        <div>
-          <h1>Connected Apps</h1>
-          <p>Every site or app plugged into the shared AdEngine API, and the credentials it uses to request ads.</p>
-        </div>
-      </div>
-
-      <div class="row g-3" id="apps-grid"></div>
-
-    </main>
+ob_start();
+?>
+<div class="db-page-head">
+  <div>
+    <h1>Connected Apps</h1>
+    <p>Every site or app plugged into the shared AdEngine API, and the credentials it uses to request ads. <?= help_icon('api_key', $helpText) ?></p>
   </div>
 </div>
 
-<!-- ============ NEW APP MODAL (UI only) ============ -->
+<div class="row g-3" id="apps-grid"></div>
+
+<!-- ============ NEW APP MODAL (UI only — its own form modal, distinct from the shared confirm modal) ============ -->
 <div class="modal fade db-modal" id="new-app-modal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -104,7 +38,7 @@
         </div>
         <div class="db-form-hint">
           <i class="bi bi-info-circle me-1"></i>
-          A live API key is generated automatically once the app is connected — see <a href="../api-docs.html">API Docs</a> for how to use it.
+          A live API key is generated automatically once the app is connected — see <a href="../api-docs.php">API Docs</a> for how to use it.
         </div>
       </div>
       <div class="modal-footer">
@@ -114,16 +48,16 @@
     </div>
   </div>
 </div>
+<?php
+$content = ob_get_clean();
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/dashboard.js"></script>
-<script>
+$pageScript = <<<'JS'
 (function () {
   'use strict';
 
   function renderApps() {
     const grid = document.getElementById('apps-grid');
-    grid.innerHTML = SkoolystAdsMock.apps.map(function (app, i) {
+    grid.innerHTML = SkoolystAdsMock.apps.map(function (app) {
       const adCount = SkoolystAdsMock.ads.filter(function (a) { return a.app === app.id; }).length;
       const statusBadge = app.status === 'active'
         ? '<span class="badge-status badge-status--active">Active</span>'
@@ -162,26 +96,49 @@
                 '</div>' +
               '</div>' +
 
-              '<a href="../api-docs.html" class="btn btn-sk-outline btn-sm mt-1">View Integration Guide</a>' +
+              '<a href="../api-docs.php" class="btn btn-sk-outline btn-sm mt-1">View Integration Guide</a>' +
             '</div>' +
           '</div>' +
         '</div>'
       );
     }).join('');
 
-    // Wire toggles + regenerate (mock only)
     grid.querySelectorAll('[data-toggle-app]').forEach(function (input) {
       input.addEventListener('change', function () {
         const app = SkoolystAdsMock.apps.find(function (a) { return a.id === input.dataset.toggleApp; });
-        app.status = input.checked ? 'active' : 'paused';
-        showToast(app.name + ' is now ' + app.status + '.', input.checked ? 'success' : 'info');
-        renderApps();
+        const goingActive = input.checked;
+        if (!goingActive) {
+          confirmAction({
+            title: 'Pause ' + app.name + '?',
+            body: 'Ads from ' + app.name + ' will stop being served immediately. You can turn it back on any time.',
+            confirmLabel: 'Pause App',
+            danger: true,
+            onConfirm: function () {
+              app.status = 'paused';
+              showToast(app.name + ' is now paused.', 'info');
+              renderApps();
+            },
+          });
+          input.checked = true; // revert until confirmed
+        } else {
+          app.status = 'active';
+          showToast(app.name + ' is now active.', 'success');
+          renderApps();
+        }
       });
     });
+
     grid.querySelectorAll('[data-regen]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!window.confirm('Regenerate the API key for this app? The old key will stop working immediately.')) return;
-        showToast('New API key generated. Update it in the connected app before the old one expires.', 'success');
+        confirmAction({
+          title: 'Regenerate API key?',
+          body: 'The old key will stop working immediately — update it in the connected app right away.',
+          confirmLabel: 'Regenerate',
+          danger: true,
+          onConfirm: function () {
+            showToast('New API key generated. Update it in the connected app before the old one expires.', 'success');
+          },
+        });
       });
     });
   }
@@ -196,6 +153,6 @@
 
   renderApps();
 })();
-</script>
-</body>
-</html>
+JS;
+
+require __DIR__ . '/../views/layouts/app.php';

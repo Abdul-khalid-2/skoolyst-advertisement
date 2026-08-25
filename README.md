@@ -13,7 +13,7 @@ Each section below is implemented one at a time — a section isn't started unti
 | # | Section | Status |
 |---|---|---|
 | 1 | Project Idea | ✅ Done |
-| 2 | User Interface | ⬜ Not Started |
+| 2 | User Interface | ✅ Done |
 | 3 | Backend Architecture | ⬜ Not Started |
 | 4 | API Structure | ⬜ Not Started |
 | 5 | Database Design | ⬜ Not Started |
@@ -33,7 +33,7 @@ Each section below is implemented one at a time — a section isn't started unti
 ## Table of Contents
 
 1. [Project Idea](#1-project-idea) — ✅ Done
-2. [User Interface](#2-user-interface)
+2. [User Interface](#2-user-interface) — ✅ Done
 3. [Backend Architecture](#3-backend-architecture)
 4. [API Structure](#4-api-structure)
 5. [Database Design](#5-database-design)
@@ -68,7 +68,9 @@ Each section below is implemented one at a time — a section isn't started unti
 
 ---
 
-## 2. User Interface
+## 2. User Interface ✅ Done
+
+**Status:** implemented and pushed on branch `claude-66`. The pages are now real PHP views built on the shared layout/partial/component system described below — not just a static prototype. Specifically: `views/layouts/app.php` (shared shell), `views/partials/*` (head, sidebar-advertiser, sidebar-admin, topbar, scripts), `views/components/*` (status-badge, stat-card, app-chip, help-icon, ads-table, modal-confirm), and `data/mock-data.php` as the single source of truth for both PHP and injected JS. All 7 pages (`dashboard/index.php`, `create-ad.php`, `my-ads.php`, `admin/index.php`, `ads.php`, `apps.php`, `api-docs.php`) run on this system.
 
 The UI is already built as static HTML/CSS/JS (Bootstrap 5 + vanilla JS) so backend work can plug into working markup rather than designing while coding the API. Two principles carried through every screen:
 

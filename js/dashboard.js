@@ -13,8 +13,14 @@
 
   // -----------------------------------------------------------------------
   // 1. Mock data — stands in for GET /api/v1/advertiser/ads etc.
+  //
+  // Real data now comes from data/mock-data.php on the PHP side, injected
+  // as window.SkoolystAdsMockData by views/partials/scripts.php — the
+  // arrays below are only a FALLBACK for when this file runs with no PHP
+  // behind it (e.g. a plain static file preview). Once Section 4 (API)
+  // lands, both of these mock sources are replaced by a real fetch().
   // -----------------------------------------------------------------------
-  const MOCK_APPS = [
+  const FALLBACK_APPS = [
     { id: 'sk', code: 'SK', name: 'Skoolyst', domain: 'skoolyst.com', apiKey: 'sk_live_9c1c...4f2a', status: 'active', placements: 4 },
     { id: 'ss', code: 'SS', name: 'Skoolyst Social', domain: 'social.skoolyst.com', apiKey: 'sk_live_2b7e...9a10', status: 'active', placements: 3 },
     { id: 'st', code: 'ST', name: 'Skoolyst Teachers', domain: 'teachers.skoolyst.com', apiKey: 'sk_live_af31...c88d', status: 'active', placements: 3 },
@@ -22,7 +28,7 @@
     { id: 'sa', code: 'SA', name: 'Safi India Autos', domain: 'safiindiaautos.com', apiKey: 'sk_live_5d90...12ff', status: 'paused', placements: 2 },
   ];
 
-  const MOCK_ADS = [
+  const FALLBACK_ADS = [
     {
       id: 'ad_1001',
       title: 'Admissions Open — Build Your Future With Tech',
@@ -138,7 +144,7 @@
     },
   ];
 
-  const PLACEMENTS_BY_APP = {
+  const FALLBACK_PLACEMENTS = {
     sk: [
       { value: 'home_top', label: 'Home — Top Banner' },
       { value: 'home_sidebar', label: 'Home — Sidebar' },
@@ -159,6 +165,13 @@
       { value: 'home_sidebar', label: 'Home — Sidebar' },
     ],
   };
+
+  // Prefer the data injected by PHP (single source of truth); fall back
+  // to the hardcoded copy above only if this page has no PHP behind it.
+  const injected = window.SkoolystAdsMockData;
+  const MOCK_APPS = (injected && injected.apps) || FALLBACK_APPS;
+  const MOCK_ADS = (injected && injected.ads) || FALLBACK_ADS;
+  const PLACEMENTS_BY_APP = (injected && injected.placementsByApp) || FALLBACK_PLACEMENTS;
 
   window.SkoolystAdsMock = { apps: MOCK_APPS, ads: MOCK_ADS, placementsByApp: PLACEMENTS_BY_APP };
 
@@ -260,6 +273,37 @@
   window.showToast = showToast;
 
   // -----------------------------------------------------------------------
+  // 5b. Shared confirm modal — see views/components/modal-confirm.php.
+  // One modal instance per page; every destructive action reuses it
+  // instead of shipping its own modal markup.
+  // -----------------------------------------------------------------------
+  function confirmAction(opts) {
+    const modalId = opts.modalId || 'confirm-modal';
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl || !window.bootstrap) {
+      // No shared modal on this page (or Bootstrap not loaded) — fall back
+      // to a native confirm so the action still works.
+      if (window.confirm(opts.body || 'Are you sure?')) opts.onConfirm();
+      return;
+    }
+    document.getElementById(modalId + '-title').textContent = opts.title || 'Are you sure?';
+    document.getElementById(modalId + '-body').textContent = opts.body || '';
+    const confirmBtn = document.getElementById(modalId + '-confirm');
+    confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+    confirmBtn.className = opts.danger ? 'btn-reject' : 'btn btn-sk-primary';
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    function handler() {
+      modal.hide();
+      confirmBtn.removeEventListener('click', handler);
+      opts.onConfirm();
+    }
+    confirmBtn.addEventListener('click', handler);
+    modal.show();
+  }
+  window.confirmAction = confirmAction;
+
+  // -----------------------------------------------------------------------
   // 5. Ads table rendering (my-ads.html and admin/ads.html)
   // -----------------------------------------------------------------------
   function buildStatusBadge(status) {
@@ -358,12 +402,18 @@
         const action = btn.dataset.action;
 
         if (action === 'delete') {
-          if (window.confirm('Delete "' + ad.title + '"? This cannot be undone.')) {
-            const idx = MOCK_ADS.indexOf(ad);
-            MOCK_ADS.splice(idx, 1);
-            renderAdsTable(opts);
-            showToast('Ad deleted.', 'success');
-          }
+          confirmAction({
+            title: 'Delete this ad?',
+            body: 'Delete "' + ad.title + '"? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true,
+            onConfirm: function () {
+              const idx = MOCK_ADS.indexOf(ad);
+              MOCK_ADS.splice(idx, 1);
+              renderAdsTable(opts);
+              showToast('Ad deleted.', 'success');
+            },
+          });
           return;
         }
         if (action === 'pause') { ad.status = 'paused'; showToast('Ad paused.', 'info'); }
@@ -517,6 +567,18 @@
   window.SkoolystAdsUI.initTableFilters = initTableFilters;
 
   // -----------------------------------------------------------------------
+  // 11. Help tooltips — see views/components/help-icon.php.
+  // One initializer turns every [data-bs-toggle="tooltip"] on the page
+  // into a Bootstrap tooltip, so no page has to wire this up itself.
+  // -----------------------------------------------------------------------
+  function initTooltips() {
+    if (!window.bootstrap) return;
+    $all('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Init on every page that includes this script
   // -----------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
@@ -524,5 +586,6 @@
     initCopyButtons();
     initCodeTabs();
     initDocsNav();
+    initTooltips();
   });
 })();

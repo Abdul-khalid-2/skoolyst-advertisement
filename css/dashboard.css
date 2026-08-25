@@ -750,6 +750,15 @@ body.db-body {
 }
 .db-form-hint.is-count { display: flex; justify-content: space-between; }
 
+.db-help-icon {
+  color: var(--color-neutral-muted-light);
+  font-size: 0.85rem;
+  margin-left: 0.3rem;
+  cursor: help;
+  vertical-align: middle;
+}
+.db-help-icon:hover, .db-help-icon:focus-visible { color: var(--color-secondary); outline: none; }
+
 .db-char-count.is-over { color: var(--color-danger); font-weight: 700; }
 
 .db-checkgrid {
