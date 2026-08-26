@@ -13,6 +13,7 @@ use Core\Response;
 use Core\Request;
 use Core\Validator;
 use Core\Uploads;
+use Core\Cache;
 use Core\Auth\Middleware;
 use App\Apps\AppRepository;
 
@@ -59,7 +60,20 @@ class AdController
             return;
         }
 
-        $ad = $this->ads->findServableForPlacement($appId, $placementCode);
+        // 7.c — cache read before touching the DB. Keyed per app+placement
+        // so one app's cached ad is never served to another (keeps the
+        // 6.u scoping guarantee intact even through the cache layer).
+        $cacheKey = "ads:serve:{$appId}:{$placementCode}";
+        $ad = Cache::get($cacheKey);
+
+        if ($ad === null) {
+            $ad = $this->ads->findServableForPlacement($appId, $placementCode);
+
+            // 7.d — short TTL: long enough to absorb a traffic burst on a
+            // popular placement, short enough that a newly-approved or
+            // newly-expired ad shows up within a few seconds, not minutes.
+            Cache::set($cacheKey, $ad, 30);
+        }
 
         Response::success(['ad' => $ad]);
     }

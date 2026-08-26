@@ -11,6 +11,7 @@
  */
 
 use App\Ads\AdController;
+use App\Ads\ImageController;
 
 return [
     [
@@ -18,6 +19,12 @@ return [
         'path' => '/api/v1/ads/serve',
         'auth' => false,
         'handler' => [AdController::class, 'serve'],
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/images/ads/{filename}',
+        'auth' => false,
+        'handler' => [ImageController::class, 'show'],
     ],
     [
         'method' => 'POST',

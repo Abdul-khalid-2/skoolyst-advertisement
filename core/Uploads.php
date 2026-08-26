@@ -14,6 +14,13 @@ class Uploads
 {
     private const MAX_BYTES = 2 * 1024 * 1024; // 2MB (6.q)
 
+    // 7.g — the actual rendered size of an ad card image (4:3, per the
+    // "recommended 4:3" hint on the create-ad upload field). Anything
+    // larger than this is wasted bytes the browser downloads and
+    // discards.
+    private const TARGET_WIDTH = 600;
+    private const TARGET_HEIGHT = 450;
+
     private const ALLOWED_MIME_TO_EXT = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -70,6 +77,12 @@ class Uploads
         // could parse, not just something with an image-shaped header.
         $image = self::decode($file['tmp_name'], $mimeType);
 
+        // 7.g — resize to the one size the ad card actually renders at
+        // (create-ad.php recommends 4:3), instead of storing whatever
+        // resolution the advertiser happened to upload. Only downscales;
+        // a smaller source image is left as-is rather than upscaled.
+        $image = self::resizeToFit($image, self::TARGET_WIDTH, self::TARGET_HEIGHT);
+
         // 6.q — rename on storage: a random name, never the client's
         // original filename, so it can't collide, overwrite another
         // ad's image, or carry a path-traversal payload.
@@ -79,10 +92,40 @@ class Uploads
             mkdir(self::STORAGE_DIR, 0755, true);
         }
 
+        // 7.h — compression is the encode-quality argument passed here;
+        // see encode() below (85 for JPEG/WebP, PNG level 6).
         self::encode($image, self::STORAGE_DIR . '/' . $filename, $mimeType);
         imagedestroy($image);
 
         return $filename;
+    }
+
+    /**
+     * Downscales an image to fit within $maxWidth x $maxHeight,
+     * preserving aspect ratio. Never upscales — a source already
+     * smaller than the target is returned unchanged (7.g).
+     */
+    private static function resizeToFit(\GdImage $image, int $maxWidth, int $maxHeight): \GdImage
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $scale = min($maxWidth / $width, $maxHeight / $height, 1.0);
+
+        if ($scale >= 1.0) {
+            return $image;
+        }
+
+        $newWidth = (int) round($width * $scale);
+        $newHeight = (int) round($height * $scale);
+
+        $resized = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        imagedestroy($image);
+
+        return $resized;
     }
 
     /**
