@@ -18,7 +18,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 6 | Authentication & Security | ✅ Done |
 | 7 | Performance & Optimization | ✅ Done |
 | 8 | SEO | ✅ Done |
-| 9 | Folder Structure | ⬜ Not Started |
+| 9 | Folder Structure | ✅ Done |
 | 10 | Build Order / Roadmap | ⬜ Not Started |
 | 11 | Tech Stack & Environment Setup | ⬜ Not Started |
 | 12 | Coding Standards & Git Workflow | ⬜ Not Started |
@@ -253,22 +253,22 @@ instead — the raw tables stay write-once, for auditing only.
 
 ---
 
-## 9. Folder Structure — ⬜ Not Started
+## 9. Folder Structure — ✅ Done
 
 - [x] a - Create `public/` folder
 - [x] b - Move/point web server root at `public/`
 - [x] c - Create `public/assets/` folder
 - [x] d - Create `public/uploads/ads/` folder
-- [ ] e - Confirm `app/` module folders exist *(tracked in 3.1)*
-- [ ] f - Confirm `core/` folder exists *(tracked in 3.2)*
-- [ ] g - Confirm `views/` folder is unchanged *(already done — Section 2)*
-- [ ] h - Create `config/database.php`
-- [ ] i - Create `config/app.php`
-- [ ] j - Create `database/migrations/` folder
-- [ ] k - Create `database/seeders/` folder
-- [ ] l - Create `routes/web.php`
-- [ ] m - Create `routes/api.php`
-- [ ] n - Create `tests/` folder
+- [x] e - Confirm `app/` module folders exist *(tracked in 3.1 — Admin, Ads, Apps, Auth all present)*
+- [x] f - Confirm `core/` folder exists *(tracked in 3.2 — present, incl. `Auth/` and `Security/` subfolders)*
+- [x] g - Confirm `views/` folder is unchanged *(already done — Section 2)*
+- [x] h - Create `config/database.php` — connection settings, `core/Database.php` now reads from it instead of `getenv()` directly
+- [x] i - Create `config/app.php` — name/env/debug/url/timezone + shared pagination defaults (7.k/7.l)
+- [x] j - Create `database/migrations/` folder *(already present — 16 migrations, Section 5)*
+- [x] k - Create `database/seeders/` folder — `DatabaseSeeder.php`, idempotent, seeds one admin user, one sample advertiser, one sample connected app + API key
+- [x] l - Create `routes/web.php` — map of every dashboard/admin page, mirroring the API route table
+- [x] m - Create `routes/api.php` *(already present — Section 3.1.j router boot, merges every module's routes)*
+- [x] n - Create `tests/` folder — scaffold + planned per-module layout, actual suite deferred to Section 13
 
 ---
 
