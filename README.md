@@ -242,11 +242,11 @@ instead — the raw tables stay write-once, for auditing only.
 
 - [x] a - Add descriptive `<title>` to `index.html`
 - [x] b - Add `<meta description>` to `index.html`
-- [ ] c - Add descriptive `<title>`/`<meta description>` to `api-docs.php`
-- [ ] d - Check/fix heading order (h1→h2→h3) on `index.html`
-- [ ] e - Check/fix heading order (h1→h2→h3) on `api-docs.php`
-- [ ] f - Generate `sitemap.xml` for public pages
-- [ ] g - Write `robots.txt` disallowing `/dashboard/`
+- [x] c - Add descriptive `<title>`/`<meta description>` to `api-docs.php`
+- [x] d - Check/fix heading order (h1→h2→h3) on `index.html`
+- [x] e - Check/fix heading order (h1→h2→h3) on `api-docs.php`
+- [x] f - Generate `sitemap.xml` for public pages
+- [x] g - Write `robots.txt` disallowing `/dashboard/`
 - [ ] h - Add `/admin/` and `/api/` disallow rules to `robots.txt`
 - [ ] i - Add `SoftwareApplication` structured data to `index.html` (optional, if page grows)
 - [ ] j - Re-run the Section 7 performance checklist specifically against `index.html`/`api-docs.php`
