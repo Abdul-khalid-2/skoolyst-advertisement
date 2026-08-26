@@ -68,16 +68,40 @@
   //    textContent so it never trusts ad copy as HTML, whether the data
   //    comes from this static array or a real API later.
   // ---------------------------------------------------------------------
+
+  // 7.m/7.n — impression/click tracking fires-and-forgets: it never
+  // blocks rendering or navigation, and the page never waits on or
+  // checks its result. sendBeacon is preferred because it's built for
+  // exactly this (queued by the browser, survives the page unloading
+  // right after a click); fetch with keepalive is the fallback for
+  // browsers without sendBeacon.
+  function trackAdEvent(adId, eventType) {
+    if (!adId) return;
+
+    const url = '/api/v1/ads/' + encodeURIComponent(adId) + '/' + eventType;
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url);
+      return;
+    }
+
+    fetch(url, { method: 'POST', keepalive: true }).catch(function () {
+      // Deliberately ignored — a dropped tracking ping should never
+      // surface as an error to the visitor.
+    });
+  }
+
   function renderAdvertisement(ad, container, variant) {
     variant = variant || 'main'; // 'main' | 'placement'
     container.innerHTML = '';
 
     if (variant === 'placement') {
       container.appendChild(buildPlacementAd(ad));
-      return;
+    } else {
+      container.appendChild(buildMainAd(ad));
     }
 
-    container.appendChild(buildMainAd(ad));
+    trackAdEvent(ad.id, 'impression');
   }
 
   function buildMainAd(ad) {
@@ -114,6 +138,7 @@
     const ctaIcon = document.createElement('i');
     ctaIcon.className = 'bi bi-arrow-up-right';
     cta.appendChild(ctaIcon);
+    cta.addEventListener('click', function () { trackAdEvent(ad.id, 'click'); });
 
     const urlSpan = el('span', 'ad-card__url');
     urlSpan.textContent = safeHostname(ad.click_url);
@@ -156,6 +181,7 @@
     cta.target = '_blank';
     cta.rel = 'noopener sponsored';
     cta.textContent = ad.cta_text + ' \u2192';
+    cta.addEventListener('click', function () { trackAdEvent(ad.id, 'click'); });
 
     body.appendChild(title);
     body.appendChild(desc);

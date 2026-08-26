@@ -354,7 +354,7 @@
       tr.innerHTML =
         '<td>' +
           '<div class="d-flex align-items-center gap-3">' +
-            '<img src="' + ad.image + '" class="db-table__thumb" alt="">' +
+            '<img src="' + ad.image + '" class="db-table__thumb" alt="" loading="lazy">' +
             '<div>' +
               '<p class="db-table__title">' + escapeHtml(ad.title) + '</p>' +
               '<p class="db-table__meta">' + (showAdvertiser ? escapeHtml(ad.advertiser) + ' &middot; ' : '') + appName(ad.app) + ' &middot; ' + ad.placement + '</p>' +

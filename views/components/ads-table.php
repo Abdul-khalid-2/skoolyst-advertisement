@@ -59,7 +59,7 @@ function ads_table_rows(
 
         $rows .= '<tr data-ad-id="' . htmlspecialchars($ad['id']) . '">'
             . '<td><div class="d-flex align-items-center gap-3">'
-            . '<img src="' . htmlspecialchars($baseHref . $ad['image']) . '" class="db-table__thumb" alt="">'
+            . '<img src="' . htmlspecialchars($baseHref . $ad['image']) . '" class="db-table__thumb" alt="" loading="lazy">'
             . '<div><p class="db-table__title">' . htmlspecialchars($ad['title']) . '</p>'
             . '<p class="db-table__meta">' . $meta . '</p></div></div></td>'
             . '<td>' . status_badge($ad['status']) . '</td>'

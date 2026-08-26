@@ -56,7 +56,7 @@ ob_start();
         <?php else: foreach ($attentionAds as $i => $ad): ?>
           <?php if ($i > 0): ?><hr class="my-1"><?php endif; ?>
           <div class="d-flex align-items-start gap-2">
-            <img src="<?= htmlspecialchars($baseHref . $ad['image']) ?>" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex:0 0 auto;" alt="">
+            <img src="<?= htmlspecialchars($baseHref . $ad['image']) ?>" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex:0 0 auto;" alt="" loading="lazy">
             <div class="flex-grow-1">
               <p class="mb-0 small fw-bold"><?= htmlspecialchars($ad['title']) ?></p>
               <p class="mb-1 small text-muted"><?= htmlspecialchars($ad['advertiser']) ?></p>
