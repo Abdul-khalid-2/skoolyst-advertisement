@@ -165,13 +165,13 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] g - Migration: `api_keys` table
 
 ### 5.2 Indexing plan
-- [ ] a - Add `ads (status, placement_id)` composite index
-- [ ] b - Add `ads (user_id)` index
-- [ ] c - Add `ads (start_date, end_date)` index
-- [ ] d - Add `ad_impressions (ad_id, occurred_at)` index
-- [ ] e - Add `ad_clicks (ad_id, occurred_at)` index
-- [ ] f - Add `apps (api_key_hash)` unique index
-- [ ] g - Add `placements (app_id, code)` unique composite index
+- [x] a - Add `ads (status, placement_id)` composite index
+- [x] b - Add `ads (user_id)` index
+- [x] c - Add `ads (start_date, end_date)` index
+- [x] d - Add `ad_impressions (ad_id, occurred_at)` index
+- [x] e - Add `ad_clicks (ad_id, occurred_at)` index
+- [x] f - Add `apps (api_key_hash)` unique index
+- [x] g - Add `placements (app_id, code)` unique composite index
 
 ### 5.3 Aggregation, not row-by-row counting
 - [ ] a - Migration: `ad_stats_daily (ad_id, date, impressions, clicks)` table
