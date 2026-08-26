@@ -493,9 +493,10 @@ pre.api-preview-code {
   padding: 3rem 0 1.5rem;
 }
 
-.sk-footer h5 {
+.sk-footer h3 {
   color: #fff;
   font-weight: 800;
+  font-size: 1.25rem;
 }
 
 .sk-footer a {
