@@ -10,7 +10,7 @@
  */
 $pageScript = $pageScript ?? '';
 
-// Image paths in mock-data.php are root-relative ("assets/ad-1.svg");
+// Image paths in mock-data.php are root-relative ("assets/img/ad-1.svg");
 // prefix them with this page's $baseHref before handing the data to JS.
 $jsMockData = $mockData;
 if (!empty($jsMockData['ads'])) {
@@ -22,7 +22,7 @@ if (!empty($jsMockData['ads'])) {
 ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>window.SkoolystAdsMockData = <?= json_encode($jsMockData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
-<script src="<?= $baseHref ?>js/dashboard.js"></script>
+<script src="<?= $baseHref ?>assets/js/dashboard.js"></script>
 <?php if ($pageScript !== ''): ?>
 <script>
 <?= $pageScript ?>
