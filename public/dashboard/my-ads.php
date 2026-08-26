@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../views/bootstrap.php';
+require __DIR__ . '/../../views/bootstrap.php';
 
 $pageTitle  = 'My Ads';
 $role       = 'advertiser';
@@ -83,4 +83,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 JS;
 
-require __DIR__ . '/../views/layouts/app.php';
+require __DIR__ . '/../../views/layouts/app.php';

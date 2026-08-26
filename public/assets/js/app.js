@@ -22,7 +22,7 @@
       title: 'Admissions Open — Build Your Future With Tech',
       description:
         'Hands-on courses in web development, graphic design, and office skills. Evening batches available for working students.',
-      image_url: 'assets/ad-1.svg',
+      image_url: 'assets/img/ad-1.svg',
       cta_text: 'Learn More',
       click_url: 'https://example.com/computer-academy',
     },
@@ -32,7 +32,7 @@
       title: 'Speak Confidently in 8 Weeks',
       description:
         'Small-group spoken English classes for students and professionals, with weekend batches and certified instructors.',
-      image_url: 'assets/ad-2.svg',
+      image_url: 'assets/img/ad-2.svg',
       cta_text: 'Book a Seat',
       click_url: 'https://example.com/english-center',
     },
@@ -42,7 +42,7 @@
       title: 'New Semester, New Books — Up to 20% Off',
       description:
         'Textbooks, guides, and stationery for all grades in one place, with home delivery across the city.',
-      image_url: 'assets/ad-3.svg',
+      image_url: 'assets/img/ad-3.svg',
       cta_text: 'Shop Now',
       click_url: 'https://example.com/book-store',
     },

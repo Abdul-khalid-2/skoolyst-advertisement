@@ -1,0 +1,31 @@
+# public/.htaccess (Section 9.b)
+#
+# The web server document root points here. Real files (index.html,
+# api-docs.php, dashboard/, admin/, assets/, uploads/) are served
+# directly by Apache and never touch index.php. Only the JSON API
+# routes and the cached-image route are dispatched through the front
+# controller — everything else that doesn't match a real file/folder
+# falls through to it too, so it can return a proper JSON 404 instead
+# of Apache's default error page.
+
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # API and image-serving requests always go through the front
+    # controller, even though public/index.php could also be reached
+    # by the fallback rule below — being explicit here means it keeps
+    # working even if a future public/api/ directory is added and
+    # would otherwise be picked up as a real path first.
+    RewriteRule ^api/(.*)$ index.php [L,QSA]
+    RewriteRule ^images/(.*)$ index.php [L,QSA]
+
+    # Anything else that isn't a real file or directory (public/dashboard/,
+    # public/admin/, public/assets/, public/uploads/, index.html,
+    # api-docs.php are all real and served directly, bypassing this)
+    # falls through to the front controller for a JSON 404.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>

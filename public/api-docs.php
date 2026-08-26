@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/views/bootstrap.php';
+require __DIR__ . '/../views/bootstrap.php';
 
 $pageTitle  = 'API Docs';
 $metaDescription = 'AdEngine API reference for Skoolyst Ads: authenticate with an API key, request ads to serve, and report impressions and clicks for any connected app.';
@@ -189,4 +189,4 @@ $ads = json_decode($response, true)['ads'];</code></pre>
 </div>
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/views/layouts/app.php';
+require __DIR__ . '/../views/layouts/app.php';

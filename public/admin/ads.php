@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../views/bootstrap.php';
+require __DIR__ . '/../../views/bootstrap.php';
 
 $pageTitle  = 'All Ads';
 $role       = 'admin';
@@ -123,4 +123,4 @@ $pageScript = <<<'JS'
 })();
 JS;
 
-require __DIR__ . '/../views/layouts/app.php';
+require __DIR__ . '/../../views/layouts/app.php';

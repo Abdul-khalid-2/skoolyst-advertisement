@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../views/bootstrap.php';
+require __DIR__ . '/../../views/bootstrap.php';
 
 $pageTitle  = 'Create Ad';
 $role       = 'advertiser';
@@ -235,7 +235,7 @@ $pageScript = <<<'JS'
 
   const fileInput = document.getElementById('f-image');
   const fileDrop = document.getElementById('file-drop');
-  let currentImageSrc = editingAd ? editingAd.image : '../assets/ad-1.svg';
+  let currentImageSrc = editingAd ? editingAd.image : '../assets/img/ad-1.svg';
 
   fileInput.addEventListener('change', function () {
     const file = fileInput.files && fileInput.files[0];
@@ -349,4 +349,4 @@ $pageScript = <<<'JS'
 })();
 JS;
 
-require __DIR__ . '/../views/layouts/app.php';
+require __DIR__ . '/../../views/layouts/app.php';

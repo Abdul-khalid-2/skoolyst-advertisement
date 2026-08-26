@@ -1,0 +1,27 @@
+# public/uploads/ads/.htaccess
+#
+# This folder holds re-encoded, MIME-validated ad images written by
+# core/Uploads.php (Section 6.o-r) — now served directly by the web
+# server for speed (Section 9.d), instead of only through
+# ImageController's PHP route. Direct serving must not weaken the
+# "non-executable path" guarantee from 6.r, so script execution is
+# denied here regardless of a file's extension or content.
+
+# Deny execution of anything that looks like a script, even if a
+# malicious upload somehow got a script-like extension past
+# core/Uploads.php's MIME/extension checks.
+<FilesMatch "\.(php|phtml|php\d|pl|py|jsp|asp|aspx|sh|cgi|exe)$">
+    Require all denied
+</FilesMatch>
+
+# Belt-and-suspenders for older Apache/mod_php configurations where
+# handler mapping alone might not be enough to stop PHP execution.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
+# No directory listing, no executing anything as CGI.
+Options -Indexes -ExecCGI

@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/../views/bootstrap.php';
-require __DIR__ . '/../core/Database.php';
-require __DIR__ . '/../app/Ads/AdStatsRepository.php';
+require __DIR__ . '/../../views/bootstrap.php';
+require __DIR__ . '/../../core/Database.php';
+require __DIR__ . '/../../app/Ads/AdStatsRepository.php';
 
 $pageTitle  = 'Dashboard';
 $role       = 'advertiser';
@@ -141,4 +141,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 JS;
 
-require __DIR__ . '/../views/layouts/app.php';
+require __DIR__ . '/../../views/layouts/app.php';
