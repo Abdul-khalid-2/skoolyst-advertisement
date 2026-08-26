@@ -6,6 +6,26 @@
   <title>Skoolyst Ads — One Advertisement Service, Every Skoolyst App</title>
   <meta name="description" content="Skoolyst Ads is the centralized advertisement engine powering Skoolyst, Skoolyst Social, Skoolyst Teachers, and connected partner apps.">
 
+  <!-- 8.i — SoftwareApplication structured data. Kept minimal on purpose
+       (name/description/category/offers) — expand with aggregateRating,
+       screenshots, etc. once this page has real content to back them,
+       per the "optional, if page grows" note on this checklist item. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Skoolyst Ads",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "Centralized advertisement engine for the Skoolyst family of apps — one dashboard to create and manage ads, one admin panel to moderate them, and one API that any connected app calls to fetch and report on ads.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
