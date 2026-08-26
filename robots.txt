@@ -3,4 +3,5 @@ Sitemap: https://ads.skoolyst.com/sitemap.xml
 User-agent: *
 Disallow: /dashboard/
 Disallow: /admin/
+Disallow: /api/
 Allow: /
