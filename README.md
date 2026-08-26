@@ -255,10 +255,10 @@ instead — the raw tables stay write-once, for auditing only.
 
 ## 9. Folder Structure — ⬜ Not Started
 
-- [ ] a - Create `public/` folder
-- [ ] b - Move/point web server root at `public/`
-- [ ] c - Create `public/assets/` folder
-- [ ] d - Create `public/uploads/ads/` folder
+- [x] a - Create `public/` folder
+- [x] b - Move/point web server root at `public/`
+- [x] c - Create `public/assets/` folder
+- [x] d - Create `public/uploads/ads/` folder
 - [ ] e - Confirm `app/` module folders exist *(tracked in 3.1)*
 - [ ] f - Confirm `core/` folder exists *(tracked in 3.2)*
 - [ ] g - Confirm `views/` folder is unchanged *(already done — Section 2)*
