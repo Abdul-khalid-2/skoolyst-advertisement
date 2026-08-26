@@ -15,7 +15,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 3 | Backend Architecture | ✅ Done |
 | 4 | API Structure | ✅ Done |
 | 5 | Database Design | 🟨 In Progress |
-| 6 | Authentication & Security | ⬜ Not Started |
+| 6 | Authentication & Security | ✅ Done |
 | 7 | Performance & Optimization | ⬜ Not Started |
 | 8 | SEO | ⬜ Not Started |
 | 9 | Folder Structure | ⬜ Not Started |
@@ -182,31 +182,31 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 6. Authentication & Security — ⬜ Not Started
+## 6. Authentication & Security — ✅ Done
 
-- [ ] a - Implement `password_hash()` on signup
-- [ ] b - Implement `password_verify()` on login
-- [ ] c - Issue signed, HttpOnly session cookie on login
-- [ ] d - Implement per-app API key generation
-- [ ] e - Store API keys as a hash, never plaintext
-- [ ] f - Accept `Authorization: Bearer` header on authenticated API routes
-- [ ] g - Add role check for advertiser-only routes
-- [ ] h - Add role check for admin-only routes
-- [ ] i - Add CSRF token generation helper
-- [ ] j - Add CSRF token verification middleware
-- [ ] k - Attach CSRF token to the create-ad form
-- [ ] l - Attach CSRF token to every other state-changing dashboard form
-- [ ] m - Confirm every existing query goes through prepared statements (audit pass)
-- [ ] n - Escape all user-entered ad copy on output (`htmlspecialchars`)
-- [ ] o - Re-encode uploaded images on upload (strip metadata)
-- [ ] p - Validate uploads by real MIME type, not extension
-- [ ] q - Cap upload size and rename file on storage
-- [ ] r - Serve uploaded images from a non-executable path
-- [ ] s - Add rate limit to `/ads/serve`
-- [ ] t - Add rate limit to `/impression` and `/click`
-- [ ] u - Scope each API key's queries to only its own app's placements
-- [ ] v - Add audit-log table + write on admin approve/reject
-- [ ] w - Add audit-log write on admin regenerate-key action
+- [x] a - Implement `password_hash()` on signup
+- [x] b - Implement `password_verify()` on login
+- [x] c - Issue signed, HttpOnly session cookie on login
+- [x] d - Implement per-app API key generation
+- [x] e - Store API keys as a hash, never plaintext
+- [x] f - Accept `Authorization: Bearer` header on authenticated API routes
+- [x] g - Add role check for advertiser-only routes
+- [x] h - Add role check for admin-only routes
+- [x] i - Add CSRF token generation helper
+- [x] j - Add CSRF token verification middleware
+- [x] k - Attach CSRF token to the create-ad form
+- [x] l - Attach CSRF token to every other state-changing dashboard form
+- [x] m - Confirm every existing query goes through prepared statements (audit pass)
+- [x] n - Escape all user-entered ad copy on output (`htmlspecialchars`)
+- [x] o - Re-encode uploaded images on upload (strip metadata)
+- [x] p - Validate uploads by real MIME type, not extension
+- [x] q - Cap upload size and rename file on storage
+- [x] r - Serve uploaded images from a non-executable path
+- [x] s - Add rate limit to `/ads/serve`
+- [x] t - Add rate limit to `/impression` and `/click`
+- [x] u - Scope each API key's queries to only its own app's placements
+- [x] v - Add audit-log table + write on admin approve/reject
+- [x] w - Add audit-log write on admin regenerate-key action
 
 ---
 
