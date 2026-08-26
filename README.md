@@ -19,7 +19,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 7 | Performance & Optimization | ✅ Done |
 | 8 | SEO | ✅ Done |
 | 9 | Folder Structure | ✅ Done |
-| 10 | Build Order / Roadmap | ⬜ Not Started |
+| 10 | Build Order / Roadmap | 🟨 In Progress |
 | 11 | Tech Stack & Environment Setup | ⬜ Not Started |
 | 12 | Coding Standards & Git Workflow | ⬜ Not Started |
 | 13 | Testing & QA | ⬜ Not Started |
@@ -272,9 +272,9 @@ instead — the raw tables stay write-once, for auditing only.
 
 ---
 
-## 10. Build Order / Roadmap — ⬜ Not Started
+## 10. Build Order / Roadmap — 🟨 In Progress
 
-- [ ] a - Run database migrations (Section 5) on a fresh local DB
+- [x] a - Run database migrations (Section 5) on a fresh local DB
 - [ ] b - Seed the DB with the same mock data used in the UI prototype
 - [ ] c - Confirm core layer (`Database`, `Request`, `Response`, Auth middleware) boots with no errors
 - [ ] d - Confirm Auth module: login works end-to-end
