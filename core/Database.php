@@ -22,12 +22,16 @@ class Database
     public static function connection(): PDO
     {
         if (self::$connection === null) {
-            $host = getenv('DB_HOST') ?: '127.0.0.1';
-            $name = getenv('DB_NAME') ?: '';
-            $user = getenv('DB_USER') ?: '';
-            $pass = getenv('DB_PASS') ?: '';
+            $config = require __DIR__ . '/../config/database.php';
 
-            $dsn = "mysql:host={$host};dbname={$name};charset=utf8mb4";
+            $host = $config['host'];
+            $port = $config['port'];
+            $name = $config['name'];
+            $user = $config['user'];
+            $pass = $config['pass'];
+            $charset = $config['charset'];
+
+            $dsn = "{$config['driver']}:host={$host};port={$port};dbname={$name};charset={$charset}";
 
             try {
                 self::$connection = new PDO($dsn, $user, $pass, [
