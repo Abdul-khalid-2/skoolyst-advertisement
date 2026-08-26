@@ -28,13 +28,14 @@ class Uploads
     ];
 
     /**
-     * Directory ads are served from. Outside public/ and has no PHP
-     * handler mapped to it by the web server config (Section 9/11),
-     * so an uploaded file can never be executed even if its contents
-     * were malicious (6.r) — it's fetched via a small read-only route,
-     * not served directly.
+     * Directory ads are served from. Lives under public/ (Section 9.d)
+     * so the web server can serve files here directly without a PHP
+     * round-trip — hardened by public/uploads/ads/.htaccess, which
+     * denies script execution regardless of a file's extension or
+     * content, preserving the "non-executable path" guarantee from
+     * 6.r even though this is now inside the public webroot.
      */
-    private const STORAGE_DIR = __DIR__ . '/../storage/uploads';
+    private const STORAGE_DIR = __DIR__ . '/../public/uploads/ads';
 
     /**
      * @param array $file One entry from $_FILES, e.g. $_FILES['image'].

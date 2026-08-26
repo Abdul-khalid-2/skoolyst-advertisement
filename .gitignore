@@ -1,5 +1,6 @@
 /storage/cache/
 /storage/ratelimit/
-/storage/uploads/
+/public/uploads/ads/*
+!/public/uploads/ads/.htaccess
 .env
 vendor/

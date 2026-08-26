@@ -5,15 +5,20 @@ namespace App\Ads;
 /**
  * ImageController
  *
- * The only way an uploaded ad image is ever served — storage/uploads/
- * itself has no web-server mapping (6.r), so this thin, read-only
- * route is the sole path from disk to a response.
+ * Kept as a fallback path to the same images now served directly by
+ * the web server from public/uploads/ads/ (Section 9.d) — useful for
+ * local dev on PHP's built-in server, or any environment where static
+ * files aren't served straight from public/ (e.g. .htaccess support
+ * is unavailable). storage/uploads/ itself is gone; both this
+ * controller and direct static serving now read from the same
+ * public/uploads/ads/ directory, hardened by its own .htaccess so
+ * neither path can execute an uploaded file (6.r).
  */
 use Core\Response;
 
 class ImageController
 {
-    private const STORAGE_DIR = __DIR__ . '/../../storage/uploads';
+    private const STORAGE_DIR = __DIR__ . '/../../public/uploads/ads';
 
     private const EXT_TO_MIME = [
         'jpg' => 'image/jpeg',
