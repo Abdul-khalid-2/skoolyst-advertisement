@@ -3,12 +3,20 @@
  * Shared <head>. Expects $pageTitle and $baseHref to already be set by
  * the page. Every dashboard/admin/docs page includes this exact same
  * block instead of repeating the font/CSS <link> tags.
+ *
+ * $metaDescription (optional) — set by a page that's actually public
+ * and worth a search-engine snippet (currently just api-docs.php;
+ * dashboard/admin pages are disallowed in robots.txt so a description
+ * there would never be shown anyway). Falls back to a generic one so
+ * <meta description> is never missing outright.
  */
+$metaDescription = $metaDescription ?? 'Skoolyst Ads — the centralized advertisement engine powering Skoolyst, Skoolyst Social, Skoolyst Teachers, and connected partner apps.';
 ?>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($pageTitle) ?> — Skoolyst Ads</title>
+<meta name="description" content="<?= htmlspecialchars($metaDescription) ?>">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

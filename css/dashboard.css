@@ -354,7 +354,8 @@ body.db-body {
   margin-bottom: 1.5rem;
 }
 
-.db-page-head h1 {
+.db-page-head h1,
+.db-page-head h2 {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;

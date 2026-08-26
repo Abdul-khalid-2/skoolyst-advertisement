@@ -2,6 +2,7 @@
 require __DIR__ . '/views/bootstrap.php';
 
 $pageTitle  = 'API Docs';
+$metaDescription = 'AdEngine API reference for Skoolyst Ads: authenticate with an API key, request ads to serve, and report impressions and clicks for any connected app.';
 $role       = 'advertiser';
 $activeNav  = 'api-docs';
 $baseHref   = '';
@@ -21,7 +22,7 @@ ob_start();
 ?>
 <div class="db-page-head">
   <div>
-    <h1>AdEngine API Reference</h1>
+    <h2>AdEngine API Reference</h2>
     <p>One API, every Skoolyst app. Request ads, report impressions and clicks, and keep every placement in sync with what's configured in the dashboard — no ad logic hardcoded per project.</p>
   </div>
 </div>
@@ -42,26 +43,26 @@ ob_start();
   <div class="db-doc-content">
 
     <section class="db-doc-section" id="getting-started">
-      <h2>Getting Started</h2>
+      <h3>Getting Started</h3>
       <p>The AdEngine API lets any connected app request ads for a given placement, then report back when an ad was seen or clicked. All Skoolyst properties — <code>skoolyst.com</code>, <code>social.skoolyst.com</code>, <code>teachers.skoolyst.com</code> — and outside apps like Jaans Fabrics or Safi India Autos talk to the same three endpoints below.</p>
       <p class="muted">Base URL: <code>https://adds.skoolyst.com/api/v1</code></p>
-      <h3>Integration flow</h3>
+      <h4>Integration flow</h4>
       <p>1. Request an ad for a placement on page load. 2. Render it using your own markup, matching the field names below. 3. Fire an impression once it's actually visible. 4. Fire a click event when the ad's link is opened.</p>
     </section>
 
     <section class="db-doc-section" id="authentication">
-      <h2>Authentication</h2>
+      <h3>Authentication</h3>
       <p>Every request is authenticated with a per-app API key, generated when an app is connected from <a href="admin/apps.php">Admin → Connected Apps</a>. Send it as a bearer token. <?= help_icon('api_key', $helpText) ?></p>
       <div class="endpoint-row">Authorization: Bearer <span style="color:#7dd3fc;">sk_live_xxxxxxxxxxxxxxxx</span></div>
       <p class="muted">Keys are scoped to one app and can only request or report on that app's own placements. Rotate a compromised key immediately from Connected Apps — the old key stops working the moment a new one is issued.</p>
     </section>
 
     <section class="db-doc-section" id="serve-ad">
-      <h2>Serve an Ad</h2>
+      <h3>Serve an Ad</h3>
       <p>Returns one or more ads eligible for a given placement. Only <code>active</code> ads scheduled for the current date are returned.</p>
       <div class="endpoint-row"><span class="endpoint-verb endpoint-verb--get">GET</span> /ads/serve?placement=home_top&amp;limit=1</div>
 
-      <h3>Query Parameters</h3>
+      <h4>Query Parameters</h4>
       <table class="db-param-table">
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
@@ -70,7 +71,7 @@ ob_start();
         </tbody>
       </table>
 
-      <h3>Example</h3>
+      <h4>Example</h4>
       <div class="api-preview-wrap">
         <div class="db-code-tabs">
           <button type="button" class="db-code-tab active" data-code-tab="curl">cURL</button>
@@ -97,7 +98,7 @@ $ads = json_decode($response, true)['ads'];</code></pre>
         </div>
       </div>
 
-      <h3>Response</h3>
+      <h4>Response</h4>
       <div class="api-preview-wrap">
         <div class="api-preview-header">
           <div class="api-preview-dots"><span></span><span></span><span></span></div>
@@ -124,7 +125,7 @@ $ads = json_decode($response, true)['ads'];</code></pre>
     </section>
 
     <section class="db-doc-section" id="track-impression">
-      <h2>Track an Impression <?= help_icon('impressions', $helpText) ?></h2>
+      <h3>Track an Impression <?= help_icon('impressions', $helpText) ?></h3>
       <p>Call this once an ad has actually entered the viewport — not just when it was requested.</p>
       <div class="endpoint-row"><span class="endpoint-verb endpoint-verb--post">POST</span> /ads/{ad_id}/impression</div>
       <table class="db-param-table">
@@ -137,13 +138,13 @@ $ads = json_decode($response, true)['ads'];</code></pre>
     </section>
 
     <section class="db-doc-section" id="track-click">
-      <h2>Track a Click</h2>
+      <h3>Track a Click</h3>
       <p>Handled automatically when a visitor follows the <code>click_url</code> returned by <code>/ads/serve</code> — AdEngine logs the click, then redirects to the advertiser's real destination. You only need to call this endpoint directly if you're building a custom click handler instead of using <code>click_url</code>.</p>
       <div class="endpoint-row"><span class="endpoint-verb endpoint-verb--post">POST</span> /ads/{ad_id}/click</div>
     </section>
 
     <section class="db-doc-section" id="placements">
-      <h2>Placement Codes <?= help_icon('placement', $helpText) ?></h2>
+      <h3>Placement Codes <?= help_icon('placement', $helpText) ?></h3>
       <p>Each connected app defines its own placement codes from <a href="admin/apps.php">Admin → Connected Apps</a>. Current placements:</p>
       <div class="db-table-wrap">
         <table class="db-table" style="min-width:520px;">
@@ -154,7 +155,7 @@ $ads = json_decode($response, true)['ads'];</code></pre>
     </section>
 
     <section class="db-doc-section" id="errors">
-      <h2>Errors</h2>
+      <h3>Errors</h3>
       <p>Errors follow a consistent shape so client code can handle them the same way everywhere:</p>
       <div class="api-preview-wrap">
         <pre class="api-preview-code"><code>{
@@ -178,7 +179,7 @@ $ads = json_decode($response, true)['ads'];</code></pre>
     </section>
 
     <section class="db-doc-section" id="rate-limits">
-      <h2>Rate Limits</h2>
+      <h3>Rate Limits</h3>
       <p>Each API key is limited to <strong>600 requests per minute</strong> for <code>/ads/serve</code>, and <strong>2,000 requests per minute</strong> combined for impression and click tracking. Limit headers are returned on every response:</p>
       <div class="endpoint-row">X-RateLimit-Limit: 600 &nbsp; X-RateLimit-Remaining: 588 &nbsp; X-RateLimit-Reset: 1735138800</div>
       <p class="muted">Need a higher limit for a high-traffic placement? Reach out from the Connected Apps page and it can be raised per app.</p>
