@@ -1,6 +1,6 @@
 # Skoolyst Ads — AdEngine
 
-A centralized advertisement engine for the Skoolyst family of apps. One dashboard to create and manage ads, one admin panel to moderate them, and one API that any connected app (`skoolyst.com`, `social.skoolyst.com`, `teachers.skoolyst.com`, and outside apps like Jaans Fabrics or Safi India Autos) calls to fetch and report on ads — instead of every project hardcoding its own ad logic.
+A centralized advertisement engine for the Skoolyst family of apps. One dashboard to create and manage ads, one admin panel to moderate them, and one API that any connected app (`skoolyst.com`, `social.skoolyst.com`, `teachers.skoolyst.com`, and outside apps like Jaans Fabrics or Saif Pindi Autos) calls to fetch and report on ads — instead of every project hardcoding its own ad logic.
 
 This document is the build plan, broken into small, self-contained tasks so each one is quick to pick up, quick to review, and quick to mark done. A section isn't started until the previous one is marked ✅ Done, so nothing gets half-built in parallel.
 
