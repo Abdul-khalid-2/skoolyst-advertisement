@@ -30,4 +30,10 @@ return [
         'auth' => true,
         'handler' => [AppController::class, 'update'],
     ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/apps/{id}/regenerate-key',
+        'auth' => true,
+        'handler' => [AppController::class, 'regenerateKey'],
+    ],
 ];
