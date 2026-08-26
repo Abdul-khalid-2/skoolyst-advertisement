@@ -61,12 +61,16 @@ class AdRepository
 
     public function recordImpression(int $adId): void
     {
-        Database::query('INSERT INTO ad_impressions (ad_id, created_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
+        // Column is `occurred_at` (see migration 0005), not `created_at` —
+        // was `created_at` here until this was caught during the Section
+        // 10.a/10.b real-DB verification pass, since nothing had actually
+        // run this query against the real schema before then.
+        Database::query('INSERT INTO ad_impressions (ad_id, occurred_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
     }
 
     public function recordClick(int $adId): void
     {
-        Database::query('INSERT INTO ad_clicks (ad_id, created_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
+        Database::query('INSERT INTO ad_clicks (ad_id, occurred_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
     }
 
     /**
@@ -166,5 +170,58 @@ class AdRepository
         );
 
         return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Seed-only insert: unlike create() above, this accepts an explicit
+     * $status and $rejectionReason instead of always forcing 'pending' —
+     * MockDataSeeder needs ads that are already 'active', 'ended',
+     * 'rejected', etc. to match data/mock-data.php exactly. Never called
+     * from AdController; a real advertiser's ad always starts 'pending'
+     * (see create()) and only moderation (ModerationController) can move
+     * it from there.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function seedRaw(array $data): int
+    {
+        Database::query(
+            <<<SQL
+                INSERT INTO ads (
+                    user_id, app_id, placement_id, title, description, image_path,
+                    cta_text, click_url, status, rejection_reason, start_date, end_date
+                ) VALUES (
+                    :user_id, :app_id, :placement_id, :title, :description, :image_path,
+                    :cta_text, :click_url, :status, :rejection_reason, :start_date, :end_date
+                )
+            SQL,
+            [
+                'user_id' => $data['user_id'],
+                'app_id' => $data['app_id'],
+                'placement_id' => $data['placement_id'],
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'image_path' => $data['image_path'],
+                'cta_text' => $data['cta_text'],
+                'click_url' => $data['click_url'],
+                'status' => $data['status'],
+                'rejection_reason' => $data['rejection_reason'] ?? null,
+                'start_date' => $data['start_date'] ?: null,
+                'end_date' => $data['end_date'] ?: null,
+            ]
+        );
+
+        return (int) Database::connection()->lastInsertId();
+    }
+
+    /**
+     * Finds a previously-seeded ad by its exact title — MockDataSeeder's
+     * only way to check "have I already inserted this one" since ads
+     * has no natural unique key of its own to key off (unlike users.email
+     * or apps.code), keeping the seeder idempotent like every other step.
+     */
+    public function findByTitle(string $title): ?array
+    {
+        return Database::fetchOne('SELECT * FROM ads WHERE title = :title', ['title' => $title]);
     }
 }
