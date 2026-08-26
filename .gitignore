@@ -1,3 +1,5 @@
 /storage/cache/
+/storage/ratelimit/
+/storage/uploads/
 .env
 vendor/

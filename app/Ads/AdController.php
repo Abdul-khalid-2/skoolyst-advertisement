@@ -8,13 +8,25 @@ namespace App\Ads;
  * Handles HTTP requests for the Ads module (advertiser-facing and
  * public serve/track endpoints). Kept thin: validate input, call a
  * repository method, return a response.
- *
- * Stub only — methods added when routes in Section 4 are wired up.
  */
 use Core\Response;
+use Core\Request;
+use Core\Validator;
+use Core\Uploads;
+use Core\Auth\Middleware;
+use App\Apps\AppRepository;
 
 class AdController
 {
+    private AdRepository $ads;
+    private AppRepository $apps;
+
+    public function __construct()
+    {
+        $this->ads = new AdRepository();
+        $this->apps = new AppRepository();
+    }
+
     /**
      * Example method only — shows the standard lifecycle a real
      * controller method follows: call a repository method, return a
@@ -22,57 +34,199 @@ class AdController
      */
     public function ping(): void
     {
-        $repository = new AdRepository();
-        $data = $repository->ping();
-
-        Response::success($data);
+        Response::success(['module' => 'Ads', 'status' => 'ok']);
     }
 
     /**
      * GET /api/v1/ads/serve?placement={code}
-     * Empty handler — query logic added once AdRepository has real
-     * ad-fetching methods (Section 5 schema required first).
+     * Public route, but still scoped to the calling app: the bearer
+     * key resolves to an app_id, and only that app's own placements
+     * are ever queried (6.u). No key, no ads.
      */
     public function serve(): void
     {
-        Response::success([]);
+        $apiKey = Middleware::checkApiKey();
+        $appId = $apiKey ? $this->apps->resolveAppId($apiKey) : null;
+
+        if ($appId === null) {
+            Response::error(['code' => 'unauthorized', 'message' => 'A valid API key is required.'], 401);
+            return;
+        }
+
+        $placementCode = Request::string('placement');
+        if (!Validator::required($placementCode)) {
+            Response::error(['code' => 'validation_error', 'message' => 'placement is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findServableForPlacement($appId, $placementCode);
+
+        Response::success(['ad' => $ad]);
     }
 
     /**
      * POST /api/v1/ads/{id}/impression
-     * Empty handler — logging added once ad_impressions table exists.
+     * Confirms the ad belongs to the calling app before logging —
+     * an app can never inflate another app's ad's numbers (6.u).
      */
     public function impression(): void
     {
-        Response::success([]);
+        $this->track('impression');
     }
 
     /**
      * POST /api/v1/ads/{id}/click
-     * Empty handler — logging added once ad_clicks table exists.
      */
     public function click(): void
     {
+        $this->track('click');
+    }
+
+    private function track(string $type): void
+    {
+        $apiKey = Middleware::checkApiKey();
+        $appId = $apiKey ? $this->apps->resolveAppId($apiKey) : null;
+
+        if ($appId === null) {
+            Response::error(['code' => 'unauthorized', 'message' => 'A valid API key is required.'], 401);
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null || !$this->ads->belongsToApp($adId, $appId)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found for this app.'], 404);
+            return;
+        }
+
+        $type === 'impression' ? $this->ads->recordImpression($adId) : $this->ads->recordClick($adId);
+
         Response::success([]);
     }
 
     /**
      * POST /api/v1/advertiser/ads
-     * Empty handler — validation (AdValidator) and creation added
-     * once the `ads` table exists.
+     * Advertiser-only (6.g). Validates input, re-encodes/validates any
+     * uploaded image (6.o–6.r), and inserts as 'pending' — never
+     * directly 'active', so every new ad goes through moderation.
      */
     public function store(): void
     {
-        Response::success([]);
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $data = $this->validatedAdInput();
+        if ($data === null) {
+            return; // validatedAdInput() has already sent the error response.
+        }
+
+        try {
+            $data['image_path'] = isset($_FILES['image']) ? Uploads::storeAdImage($_FILES['image']) : null;
+        } catch (\RuntimeException $e) {
+            Response::error(['code' => 'invalid_image', 'message' => $e->getMessage()]);
+            return;
+        }
+
+        $ad = $this->ads->create($userId, $data);
+
+        Response::success($ad, 201);
     }
 
     /**
      * PATCH /api/v1/advertiser/ads/{id}
-     * Empty handler — validation (AdValidator) and update added
-     * once the `ads` table exists.
+     * Advertiser-only (6.g), and updateForUser() itself only affects a
+     * row owned by $userId — an advertiser can't edit another
+     * advertiser's ad by guessing its id.
      */
     public function update(): void
     {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $data = $this->validatedAdInput(requireAppPlacement: false);
+        if ($data === null) {
+            return;
+        }
+
+        $updated = $this->ads->updateForUser($adId, $userId, $data);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
         Response::success([]);
+    }
+
+    /**
+     * Shared validation for store()/update(). Ad copy is stored as
+     * plain trimmed text here — output escaping (6.n) happens at
+     * render time in views/components/ads-table.php via
+     * htmlspecialchars(), not here, so the same stored value is safe
+     * for both the JSON API and the HTML dashboard.
+     *
+     * @return array<string, mixed>|null Null once an error has been sent.
+     */
+    private function validatedAdInput(bool $requireAppPlacement = true): ?array
+    {
+        $title = Request::string('title');
+        $description = Request::string('description');
+        $ctaText = Request::string('cta_text');
+        $clickUrl = Request::string('click_url');
+        $startDate = Request::string('start_date') ?: null;
+        $endDate = Request::string('end_date') ?: null;
+
+        if (!Validator::required($title) || !Validator::maxLength($title, 150)) {
+            Response::error(['code' => 'validation_error', 'message' => 'Title is required (max 150 characters).']);
+            return null;
+        }
+
+        if (!Validator::required($clickUrl) || !Validator::url($clickUrl)) {
+            Response::error(['code' => 'validation_error', 'message' => 'A valid destination URL is required.']);
+            return null;
+        }
+
+        if ($startDate !== null && !Validator::date($startDate)) {
+            Response::error(['code' => 'validation_error', 'message' => 'start_date must be in Y-m-d format.']);
+            return null;
+        }
+
+        if ($endDate !== null && !Validator::date($endDate)) {
+            Response::error(['code' => 'validation_error', 'message' => 'end_date must be in Y-m-d format.']);
+            return null;
+        }
+
+        $data = [
+            'title' => $title,
+            'description' => $description,
+            'cta_text' => $ctaText,
+            'click_url' => $clickUrl,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ];
+
+        if ($requireAppPlacement) {
+            $appId = Request::int('app_id');
+            $placementId = Request::int('placement_id');
+
+            if ($appId === null || $placementId === null) {
+                Response::error(['code' => 'validation_error', 'message' => 'app_id and placement_id are required.']);
+                return null;
+            }
+
+            $data['app_id'] = $appId;
+            $data['placement_id'] = $placementId;
+        }
+
+        return $data;
     }
 }
