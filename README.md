@@ -14,7 +14,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 2 | User Interface | ✅ Done |
 | 3 | Backend Architecture | ✅ Done |
 | 4 | API Structure | ✅ Done |
-| 5 | Database Design | 🟨 In Progress |
+| 5 | Database Design | ✅ Done |
 | 6 | Authentication & Security | ✅ Done |
 | 7 | Performance & Optimization | ⬜ Not Started |
 | 8 | SEO | ⬜ Not Started |
@@ -153,7 +153,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
-## 5. Database Design — 🟨 In Progress
+## 5. Database Design — ✅ Done
 
 ### 5.1 Schema
 - [x] a - Migration: `users` table
@@ -165,20 +165,38 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] g - Migration: `api_keys` table
 
 ### 5.2 Indexing plan
-- [ ] a - Add `ads (status, placement_id)` composite index
-- [ ] b - Add `ads (user_id)` index
-- [ ] c - Add `ads (start_date, end_date)` index
-- [ ] d - Add `ad_impressions (ad_id, occurred_at)` index
-- [ ] e - Add `ad_clicks (ad_id, occurred_at)` index
-- [ ] f - Add `apps (api_key_hash)` unique index
-- [ ] g - Add `placements (app_id, code)` unique composite index
+- [x] a - Add `ads (status, placement_id)` composite index
+- [x] b - Add `ads (user_id)` index
+- [x] c - Add `ads (start_date, end_date)` index
+- [x] d - Add `ad_impressions (ad_id, occurred_at)` index
+- [x] e - Add `ad_clicks (ad_id, occurred_at)` index
+- [x] f - Add `apps (api_key_hash)` unique index
+- [x] g - Add `placements (app_id, code)` unique composite index
 
 ### 5.3 Aggregation, not row-by-row counting
-- [ ] a - Migration: `ad_stats_daily (ad_id, date, impressions, clicks)` table
-- [ ] b - Write the rollup query (raw events → daily totals) as a standalone script
-- [ ] c - Wire that script into a scheduled job (cron entry)
-- [ ] d - Point one dashboard chart at `ad_stats_daily` instead of raw tables
-- [ ] e - Confirm raw tables are kept read-only, for auditing only
+- [x] a - Migration: `ad_stats_daily (ad_id, date, impressions, clicks)` table
+- [x] b - Write the rollup query (raw events → daily totals) as a standalone script
+- [x] c - Wire that script into a scheduled job (cron entry)
+- [x] d - Point one dashboard chart at `ad_stats_daily` instead of raw tables
+- [x] e - Confirm raw tables are kept read-only, for auditing only
+
+`AdStatsRepository` (`app/Ads/AdStatsRepository.php`) is the only place
+allowed to run an aggregate query against `ad_impressions` /
+`ad_clicks` — its `rollupForDate()` method, called by
+`database/scripts/rollup-ad-stats-daily.php` (cron entry in
+`cron/README.md`). Every other read, including the dashboard's
+"Impressions, Last 7 Days" chart, goes through
+`AdStatsRepository::dailyImpressions()` against `ad_stats_daily`
+instead — the raw tables stay write-once, for auditing only.
+
+`AdStatsRepository` (`app/Ads/AdStatsRepository.php`) is the only place
+allowed to run an aggregate query against `ad_impressions` /
+`ad_clicks` — its `rollupForDate()` method, called by
+`database/scripts/rollup-ad-stats-daily.php` (cron entry in
+`cron/README.md`). Every other read, including the dashboard's
+"Impressions, Last 7 Days" chart, goes through
+`AdStatsRepository::dailyImpressions()` against `ad_stats_daily`
+instead — the raw tables stay write-once, for auditing only.
 
 ---
 

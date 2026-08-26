@@ -1,10 +1,36 @@
 <?php
 require __DIR__ . '/../views/bootstrap.php';
+require __DIR__ . '/../core/Database.php';
+require __DIR__ . '/../app/Ads/AdStatsRepository.php';
 
 $pageTitle  = 'Dashboard';
 $role       = 'advertiser';
 $activeNav  = 'dashboard';
 $baseHref   = '../';
+
+// "Impressions, Last 7 Days" reads the ad_stats_daily rollup (5.3),
+// never the raw ad_impressions table. Falls back to demo figures if
+// no database is configured yet — the rest of this page still runs
+// on data/mock-data.php until Section 6 wires up real auth+sessions.
+try {
+    $impressionsChartData = array_map(
+        static fn (array $row): array => [
+            'label' => date('D', strtotime($row['date'])),
+            'value' => $row['impressions'],
+        ],
+        (new \App\Ads\AdStatsRepository())->dailyImpressions(7)
+    );
+} catch (\Throwable $e) {
+    $impressionsChartData = [
+        ['label' => 'Mon', 'value' => 4200],
+        ['label' => 'Tue', 'value' => 5100],
+        ['label' => 'Wed', 'value' => 4800],
+        ['label' => 'Thu', 'value' => 6300],
+        ['label' => 'Fri', 'value' => 7100],
+        ['label' => 'Sat', 'value' => 5600],
+        ['label' => 'Sun', 'value' => 4950],
+    ];
+}
 
 $topbarActions = '
   <button type="button" class="db-icon-btn" title="Notifications"><i class="bi bi-bell"></i><span class="db-dot"></span></button>
@@ -96,17 +122,11 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-$pageScript = <<<'JS'
+$impressionsChartJson = json_encode($impressionsChartData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+$pageScript = <<<JS
 document.addEventListener('DOMContentLoaded', function () {
-  SkoolystAdsUI.renderBarChart('impressions-chart', [
-    { label: 'Mon', value: 4200 },
-    { label: 'Tue', value: 5100 },
-    { label: 'Wed', value: 4800 },
-    { label: 'Thu', value: 6300 },
-    { label: 'Fri', value: 7100 },
-    { label: 'Sat', value: 5600 },
-    { label: 'Sun', value: 4950 },
-  ]);
+  SkoolystAdsUI.renderBarChart('impressions-chart', {$impressionsChartJson});
 
   // Re-render on top of the server-rendered rows above once JS is ready,
   // so the "recent ads" widget stays interactive (edit/pause/delete).
