@@ -240,8 +240,8 @@ instead — the raw tables stay write-once, for auditing only.
 
 ## 8. SEO — ⬜ Not Started
 
-- [ ] a - Add descriptive `<title>` to `index.html`
-- [ ] b - Add `<meta description>` to `index.html`
+- [x] a - Add descriptive `<title>` to `index.html`
+- [x] b - Add `<meta description>` to `index.html`
 - [ ] c - Add descriptive `<title>`/`<meta description>` to `api-docs.php`
 - [ ] d - Check/fix heading order (h1→h2→h3) on `index.html`
 - [ ] e - Check/fix heading order (h1→h2→h3) on `api-docs.php`
