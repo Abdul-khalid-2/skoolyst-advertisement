@@ -70,12 +70,39 @@ class AdRepository
     }
 
     /**
-     * GET /advertiser/ads — an advertiser only ever sees their own ads.
+     * GET /admin/ads?status=pending — the admin moderation queue,
+     * paginated at the DB level (7.l), same LIMIT/OFFSET interpolation
+     * rationale as findAllForUser() below.
      */
-    public function findAllForUser(int $userId): array
+    public function findByStatus(string $status, int $page = 1, int $perPage = 20): array
     {
-        return Database::query('SELECT * FROM ads WHERE user_id = :user_id ORDER BY created_at DESC', ['user_id' => $userId])
-            ->fetchAll();
+        $perPage = max(1, min($perPage, 100));
+        $offset = max(0, ($page - 1) * $perPage);
+
+        return Database::query(
+            "SELECT * FROM ads WHERE status = :status ORDER BY created_at ASC LIMIT {$perPage} OFFSET {$offset}",
+            ['status' => $status]
+        )->fetchAll();
+    }
+
+    /**
+     * GET /advertiser/ads — an advertiser only ever sees their own ads,
+     * paginated at the DB level (7.k) rather than fetching every row
+     * and slicing in PHP. $perPage/$offset are interpolated directly
+     * (cast to int here, never taken as raw request input) because
+     * Database::query() binds every param as a string, and MySQL's
+     * native prepared statements (Database.php disables emulation)
+     * reject a string operand in a LIMIT/OFFSET clause.
+     */
+    public function findAllForUser(int $userId, int $page = 1, int $perPage = 20): array
+    {
+        $perPage = max(1, min($perPage, 100));
+        $offset = max(0, ($page - 1) * $perPage);
+
+        return Database::query(
+            "SELECT * FROM ads WHERE user_id = :user_id ORDER BY created_at DESC LIMIT {$perPage} OFFSET {$offset}",
+            ['user_id' => $userId]
+        )->fetchAll();
     }
 
     /**

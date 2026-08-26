@@ -26,6 +26,7 @@ class ModerationController
 
     /**
      * GET /api/v1/admin/ads?status=pending
+     * Paginated at the DB level (7.l) via AdRepository::findByStatus().
      */
     public function pendingAds(): void
     {
@@ -33,7 +34,10 @@ class ModerationController
             return;
         }
 
-        Response::success([]);
+        $status = Request::string('status') ?: 'pending';
+        $page = Request::int('page') ?? 1;
+
+        Response::success(['ads' => $this->ads->findByStatus($status, $page)]);
     }
 
     /**
