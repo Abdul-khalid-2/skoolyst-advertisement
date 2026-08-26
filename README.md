@@ -17,7 +17,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 5 | Database Design | ✅ Done |
 | 6 | Authentication & Security | ✅ Done |
 | 7 | Performance & Optimization | ✅ Done |
-| 8 | SEO | ⬜ Not Started |
+| 8 | SEO | ✅ Done |
 | 9 | Folder Structure | ⬜ Not Started |
 | 10 | Build Order / Roadmap | ⬜ Not Started |
 | 11 | Tech Stack & Environment Setup | ⬜ Not Started |
@@ -238,7 +238,7 @@ instead — the raw tables stay write-once, for auditing only.
 
 ---
 
-## 8. SEO — ⬜ Not Started
+## 8. SEO — ✅ Done
 
 - [x] a - Add descriptive `<title>` to `index.html`
 - [x] b - Add `<meta description>` to `index.html`
@@ -247,9 +247,9 @@ instead — the raw tables stay write-once, for auditing only.
 - [x] e - Check/fix heading order (h1→h2→h3) on `api-docs.php`
 - [x] f - Generate `sitemap.xml` for public pages
 - [x] g - Write `robots.txt` disallowing `/dashboard/`
-- [ ] h - Add `/admin/` and `/api/` disallow rules to `robots.txt`
-- [ ] i - Add `SoftwareApplication` structured data to `index.html` (optional, if page grows)
-- [ ] j - Re-run the Section 7 performance checklist specifically against `index.html`/`api-docs.php`
+- [x] h - Add `/admin/` and `/api/` disallow rules to `robots.txt`
+- [x] i - Add `SoftwareApplication` structured data to `index.html` (optional, if page grows)
+- [x] j - Re-run the Section 7 performance checklist specifically against `index.html`/`api-docs.php`
 
 ---
 
