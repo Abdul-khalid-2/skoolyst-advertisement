@@ -28,6 +28,7 @@ ob_start();
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body d-flex flex-column gap-3">
+        <?= csrf_field() ?>
         <div>
           <label class="db-form-label" for="new-app-name">App Name</label>
           <input type="text" id="new-app-name" class="db-input" placeholder="e.g. Skoolyst Marketplace">

@@ -22,6 +22,7 @@ ob_start();
 </div>
 
 <form id="ad-form" novalidate>
+  <?= csrf_field() ?>
   <div class="row g-4">
 
     <!-- ================= FORM COLUMN ================= -->
