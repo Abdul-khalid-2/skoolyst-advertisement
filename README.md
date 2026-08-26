@@ -15,8 +15,8 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 3 | Backend Architecture | ✅ Done |
 | 4 | API Structure | ✅ Done |
 | 5 | Database Design | ✅ Done |
-| 6 | Authentication & Security | ⬜ Not Started |
-| 7 | Performance & Optimization | ⬜ Not Started |
+| 6 | Authentication & Security | ✅ Done |
+| 7 | Performance & Optimization | ✅ Done |
 | 8 | SEO | ⬜ Not Started |
 | 9 | Folder Structure | ⬜ Not Started |
 | 10 | Build Order / Roadmap | ⬜ Not Started |
@@ -191,50 +191,50 @@ instead — the raw tables stay write-once, for auditing only.
 
 ---
 
-## 6. Authentication & Security — ⬜ Not Started
+## 6. Authentication & Security — ✅ Done
 
-- [ ] a - Implement `password_hash()` on signup
-- [ ] b - Implement `password_verify()` on login
-- [ ] c - Issue signed, HttpOnly session cookie on login
-- [ ] d - Implement per-app API key generation
-- [ ] e - Store API keys as a hash, never plaintext
-- [ ] f - Accept `Authorization: Bearer` header on authenticated API routes
-- [ ] g - Add role check for advertiser-only routes
-- [ ] h - Add role check for admin-only routes
-- [ ] i - Add CSRF token generation helper
-- [ ] j - Add CSRF token verification middleware
-- [ ] k - Attach CSRF token to the create-ad form
-- [ ] l - Attach CSRF token to every other state-changing dashboard form
-- [ ] m - Confirm every existing query goes through prepared statements (audit pass)
-- [ ] n - Escape all user-entered ad copy on output (`htmlspecialchars`)
-- [ ] o - Re-encode uploaded images on upload (strip metadata)
-- [ ] p - Validate uploads by real MIME type, not extension
-- [ ] q - Cap upload size and rename file on storage
-- [ ] r - Serve uploaded images from a non-executable path
-- [ ] s - Add rate limit to `/ads/serve`
-- [ ] t - Add rate limit to `/impression` and `/click`
-- [ ] u - Scope each API key's queries to only its own app's placements
-- [ ] v - Add audit-log table + write on admin approve/reject
-- [ ] w - Add audit-log write on admin regenerate-key action
+- [x] a - Implement `password_hash()` on signup
+- [x] b - Implement `password_verify()` on login
+- [x] c - Issue signed, HttpOnly session cookie on login
+- [x] d - Implement per-app API key generation
+- [x] e - Store API keys as a hash, never plaintext
+- [x] f - Accept `Authorization: Bearer` header on authenticated API routes
+- [x] g - Add role check for advertiser-only routes
+- [x] h - Add role check for admin-only routes
+- [x] i - Add CSRF token generation helper
+- [x] j - Add CSRF token verification middleware
+- [x] k - Attach CSRF token to the create-ad form
+- [x] l - Attach CSRF token to every other state-changing dashboard form
+- [x] m - Confirm every existing query goes through prepared statements (audit pass)
+- [x] n - Escape all user-entered ad copy on output (`htmlspecialchars`)
+- [x] o - Re-encode uploaded images on upload (strip metadata)
+- [x] p - Validate uploads by real MIME type, not extension
+- [x] q - Cap upload size and rename file on storage
+- [x] r - Serve uploaded images from a non-executable path
+- [x] s - Add rate limit to `/ads/serve`
+- [x] t - Add rate limit to `/impression` and `/click`
+- [x] u - Scope each API key's queries to only its own app's placements
+- [x] v - Add audit-log table + write on admin approve/reject
+- [x] w - Add audit-log write on admin regenerate-key action
 
 ---
 
-## 7. Performance & Optimization — ⬜ Not Started
+## 7. Performance & Optimization — ✅ Done
 
-- [ ] a - Apply the indexing plan from 5.2 (confirm indexes exist via `SHOW INDEX`)
-- [ ] b - Confirm the `ad_stats_daily` rollup job from 5.3 is running on schedule
-- [ ] c - Add cache read to `/ads/serve` (check cache before DB)
-- [ ] d - Add cache write to `/ads/serve` (short TTL after DB fetch)
-- [ ] e - Enable OPcache in the production PHP config
-- [ ] f - Switch Composer autoload to `--optimize-autoloader` in the deploy script
-- [ ] g - Resize uploaded ad images to the one size actually used
-- [ ] h - Compress resized ad images
-- [ ] i - Add far-future cache headers to image responses
-- [ ] j - Confirm `loading="lazy"` is on every ad-card image
-- [ ] k - Paginate the advertiser "My Ads" list at the DB level
-- [ ] l - Paginate the admin moderation queue at the DB level
-- [ ] m - Make the impression-tracking call fire-and-forget on the client
-- [ ] n - Make the click-tracking call fire-and-forget on the client
+- [x] a - Apply the indexing plan from 5.2 (confirm indexes exist via `SHOW INDEX`)
+- [x] b - Confirm the `ad_stats_daily` rollup job from 5.3 is running on schedule
+- [x] c - Add cache read to `/ads/serve` (check cache before DB)
+- [x] d - Add cache write to `/ads/serve` (short TTL after DB fetch)
+- [x] e - Enable OPcache in the production PHP config
+- [x] f - Switch Composer autoload to `--optimize-autoloader` in the deploy script
+- [x] g - Resize uploaded ad images to the one size actually used
+- [x] h - Compress resized ad images
+- [x] i - Add far-future cache headers to image responses
+- [x] j - Confirm `loading="lazy"` is on every ad-card image
+- [x] k - Paginate the advertiser "My Ads" list at the DB level
+- [x] l - Paginate the admin moderation queue at the DB level
+- [x] m - Make the impression-tracking call fire-and-forget on the client
+- [x] n - Make the click-tracking call fire-and-forget on the client
 
 ---
 
