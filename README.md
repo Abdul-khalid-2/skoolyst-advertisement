@@ -358,3 +358,147 @@ instead — the raw tables stay write-once, for auditing only.
 - [ ] c - A/B testing between ad creatives
 - [ ] d - Advanced targeting (by page/user segment)
 - [ ] e - Webhooks notifying a connected app on approval/rejection
+
+---
+
+## Roman Urdu Explanation — Har Section Step-by-Step
+
+*Yeh section sirf reference/samajhne ke liye hai — har section ka Roman Urdu mein tafseel, taake koi bhi (naya session ho ya team member) jaldi samajh sake ke kya ho chuka hai aur kya baaki hai.*
+
+### 1. Project Idea ✅ Done
+- **a** — Problem define ki: Skoolyst ke apps mein ads chalane ka koi shared tareeqa nahi tha.
+- **b** — Teen consumers tay kiye: Advertisers (ad dene wale), Platform Admins (approve/reject karne wale), Connected Apps/developers (jo apni app mein ads dikhayenge).
+- **c** — Core principle: ad ka data, moderation aur delivery sab **ek hi jagah** hoga; har connected app sirf "renderer" hai.
+
+### 2. User Interface ✅ Done
+**2.1 Component-based, not copy-pasted**
+- **a** — Advertiser aur Admin ke liye alag sidebars.
+- **b** — Ek shared topbar (header) har page pe.
+- **c** — `ad-card` component — dashboard, my-ads table, public placements teeno jagah reuse.
+- **d** — `status-badge` component — pehle 6 alag copy-paste `<span>` the, ab ek hi component `$status` ke hisaab se khud render karta hai.
+- **e** — Baaki reusable pieces: stat-card, ads-table, confirm-modal.
+- **f** — Ek shared layout jise har page extend karta hai.
+- **g** — Shared `<head>` aur bottom-scripts partials.
+- **h** — `mock-data.php` — sara test data ek jagah, PHP aur JS dono ko JSON ki form mein diya jata hai.
+
+**2.2 Screens already designed** — Advertiser Dashboard, Create Ad (3-step form), My Ads table, Admin Overview, Admin All Ads, Admin Connected Apps, Developer API docs page.
+
+**2.3 Help tooltips (ⓘ icon)**
+- **a** — Shared CSS class.
+- **b** — Ek JS function jo har ⓘ icon ko Bootstrap tooltip bana deta hai.
+- **c** — Tooltip text ek hi config file mein centralized.
+- **d** — Reusable help-icon component.
+
+**2.4 Responsiveness**
+- **a** — 992px se neeche sidebar off-canvas drawer.
+- **b** — Tables mobile pe horizontally scroll karti hain.
+- **c** — Create-ad preview mobile pe form ke neeche stack hoti hai.
+
+### 3. Backend Architecture ✅ Done
+**3.1 One feature = one isolated folder**
+- **a-f** — `app/Ads/` module — Controller, Model, Repository, Validator, routes stubs banaye.
+- **g** — `app/Apps/` module.
+- **h** — `app/Auth/` module.
+- **i** — `app/Admin/` module (moderation).
+- **j** — Router boot code har module ki `routes.php` load karta hai.
+- **k** — Rule: koi module doosre module ka table directly query nahi karega.
+
+**3.2 Centralized, non-repeated code**
+- **a-d** — `core/Database.php` — PDO connection + `query()`/`fetchOne()` helpers.
+- **e-f** — `core/Request.php` — input read + sanitize.
+- **g-h** — `core/Response.php` — success/error shape helpers.
+- **i-l** — `core/Validator.php` — required, maxLength, url, date rules.
+- **m-n** — `core/Auth/Middleware.php` — session check + API-key/token check.
+- **o** — `core/RateLimiter.php` — skeleton, `hit()` method.
+- **p** — `core/Cache.php` — file-based cache.
+
+**3.3 Standard request lifecycle**
+- **a-b** — `public/index.php` front controller + router wire kiya.
+- **c-d** — Auth aur rate-limit middleware pipeline mein laga diye.
+- **e** — Ek example controller jo repository call kar ke `Response::success()` return karta hai.
+- **f-g** — Rules: controllers thin rahenge, saari query logic sirf Repositories mein.
+
+### 4. API Structure ✅ Done
+Har endpoint ke liye route + empty handler:
+- **a-c** — Public/tracking: ad serve, impression record, click record.
+- **d-e** — Advertiser: naya ad banana, ad update karna.
+- **f-h** — Admin: pending ads dekhna, approve, reject.
+- **i-k** — Admin apps: list, create, update.
+- **l** — Har response standard envelope `{success, data|error}` mein.
+- **m** — Har route `/api/v1/` prefix ke saath.
+- **n** — Routes do files mein split: public (serve/track) vs authenticated (advertiser/admin).
+
+### 5. Database Design ✅ Done
+**5.1 Schema** — 7 migrations: `users`, `apps`, `placements`, `ads`, `ad_impressions`, `ad_clicks`, `api_keys`.
+
+**5.2 Indexing plan** — Performance indexes: status+placement composite, user_id, date-range, impressions/clicks (ad_id+occurred_at), api_key unique, placement unique composite.
+
+**5.3 Aggregation, not row-by-row counting**
+- **a** — `ad_stats_daily` table banayi.
+- **b** — Rollup script — raw events se roz ke totals banata hai.
+- **c** — Cron job se schedule kiya.
+- **d** — Dashboard chart ko `ad_stats_daily` se connect kiya (raw tables se nahi).
+- **e** — Raw tables sirf audit ke liye read-only rakhi.
+
+### 6. Authentication & Security ✅ Done
+- **a-b** — Password hash/verify.
+- **c** — Secure, HttpOnly session cookie.
+- **d-e** — Har app ki API key generate hoti hai, hash ho kar store hoti hai (plaintext kabhi nahi).
+- **f** — `Authorization: Bearer` header support.
+- **g-h** — Role-based checks (advertiser-only, admin-only).
+- **i-l** — CSRF token generate/verify + create-ad aur har form pe laga.
+- **m-n** — Saari queries prepared statements se, output escape (XSS se bachao).
+- **o-r** — Upload security: metadata strip, real MIME check, size cap, rename, non-executable path se serve.
+- **s-t** — Rate limiting serve/impression/click pe.
+- **u** — Har API key sirf apni app ke placements tak scoped.
+- **v-w** — Admin actions (approve/reject/key-regenerate) pe audit-log entry.
+
+### 7. Performance & Optimization ✅ Done
+- **a-b** — Indexes confirm, rollup job schedule pe chal rahi confirm.
+- **c-d** — `/ads/serve` pe cache read/write.
+- **e-f** — OPcache on, Composer autoload optimize.
+- **g-i** — Images resize + compress + far-future cache headers.
+- **j** — Har image pe `loading="lazy"`.
+- **k-l** — My-Ads aur moderation queue — DB-level pagination.
+- **m-n** — Impression/click tracking client-side fire-and-forget.
+
+### 8. SEO ✅ Done
+- **a-e** — Title/meta/heading-order fix `index.html` aur `api-docs.php` pe.
+- **f-h** — `sitemap.xml`, `robots.txt` disallow rules.
+- **i** — Structured data (`SoftwareApplication`).
+- **j** — Section 7 checklist inhi pages pe dobara check.
+
+### 9. Folder Structure ✅ Done
+- **a-d** — `public/`, `public/assets/`, `public/uploads/ads/` banaye, server root wahan point kiya.
+- **e-g** — `app/`, `core/`, `views/` folders confirm kiye.
+- **h-i** — `config/database.php`, `config/app.php` banaye.
+- **j-k** — `database/migrations/` aur `database/seeders/` (`DatabaseSeeder.php`).
+- **l-m** — `routes/web.php`, `routes/api.php`.
+- **n** — `tests/` folder scaffold.
+
+### 10. Build Order / Roadmap 🟨 In Progress
+- **a** — ✅ Migration runner (`database/scripts/migrate.php`) — idempotent.
+- **b** — ✅ `MockDataSeeder.php` se DB seed — ab repository-based approach use karta hai (`AppRepository`/`AdRepository` methods), raw queries nahi.
+- **c-e** — ✅ Core layer, Auth login, API-key issuing — real MySQL ke against verify.
+- **f** — ⬜ Create-ad form ko real `AdRepository`/validator se wire karna baaki hai.
+- **g** — ⬜ My-ads list ko real DB se wire karna baaki hai.
+- **h** — ⬜ Admin approve/reject actions ko real DB + audit-log se wire karna baaki hai.
+- **i** — ⬜ Admin app-management (key regenerate) real backend se wire karna baaki hai.
+- **j** — ⬜ API docs page ko actual routes ke against verify karna baaki hai.
+- **k** — ⬜ Stats rollup cron actually register + confirm karna baaki hai.
+- **l-n** — ⬜ Section 6/7/8 checklists real wired-up app pe dobara pass/fail test karna baaki hai.
+
+### 11. Tech Stack & Environment Setup ⬜ Not Started
+Local setup: PHP 8.2+, MySQL 8.0, Nginx/PHP-FPM, Redis (ya file-cache fallback), Composer, `.env.example`, aur setup commands README mein likhna.
+
+### 12. Coding Standards & Git Workflow ⬜ Not Started
+`CONTRIBUTING.md` banani hai: PSR-12, PSR-4, one-class-per-file, docblocks, `main` deployable, feature branches, commit format `[Module] ...`, Section 6 checklist mandatory on sensitive PRs, merged migration kabhi edit na karna.
+
+### 13. Testing & QA ⬜ Not Started
+PHPUnit setup, unit tests, integration test, disposable test DB, API contract test, manual QA checklists (browser/mobile/security).
+
+### 14. Deployment ⬜ Not Started
+Local/staging/production `.env` setup, staging seed, deploy script (migrate before switch), zero-downtime symlink swap, rollback docs, error logging, nightly backup, test restore.
+
+### 15. Future Enhancements ⬜ Not Started (deferred)
+Billing module, advertiser self-serve onboarding, A/B testing, advanced targeting, approval/rejection webhooks.
