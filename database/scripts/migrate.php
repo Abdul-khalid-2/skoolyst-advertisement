@@ -20,9 +20,13 @@
  *   php database/scripts/migrate.php --rollback  # undo only the most recently applied migration
  */
 
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../core/Database.php';
 
 use Core\Database;
+use Core\Env;
+
+Env::load(__DIR__ . '/../../.env');
 
 /**
  * Ensures the tracking table exists. Not itself a numbered migration —

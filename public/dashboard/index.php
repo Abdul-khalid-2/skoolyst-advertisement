@@ -1,7 +1,10 @@
 <?php
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
 require __DIR__ . '/../../core/Database.php';
 require __DIR__ . '/../../app/Ads/AdStatsRepository.php';
+
+Core\Env::load(__DIR__ . '/../../.env');
 
 $pageTitle  = 'Dashboard';
 $role       = 'advertiser';

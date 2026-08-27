@@ -8,6 +8,7 @@
  * middleware → Controller dispatch.
  */
 
+require __DIR__ . '/../core/Env.php';
 require __DIR__ . '/../core/Auth/Middleware.php';
 require __DIR__ . '/../core/Security/Csrf.php';
 require __DIR__ . '/../core/Security/CsrfMiddleware.php';
@@ -16,6 +17,8 @@ require __DIR__ . '/../core/RateLimiter.php';
 use Core\Auth\Middleware;
 use Core\Security\CsrfMiddleware;
 use Core\RateLimiter;
+
+Core\Env::load(__DIR__ . '/../.env');
 
 $routes = array_merge(
     require __DIR__ . '/../routes/api-public.php',

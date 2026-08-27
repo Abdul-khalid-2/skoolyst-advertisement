@@ -18,8 +18,11 @@
  * finished). Pass an explicit date to backfill or re-run a day.
  */
 
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../core/Database.php';
 require __DIR__ . '/../../app/Ads/AdStatsRepository.php';
+
+\Core\Env::load(__DIR__ . '/../../.env');
 
 use App\Ads\AdStatsRepository;
 

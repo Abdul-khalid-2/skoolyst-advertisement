@@ -27,10 +27,13 @@
  *   php database/seeders/DatabaseSeeder.php
  */
 
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../core/Database.php';
 require __DIR__ . '/../../app/Auth/UserModel.php';
 require __DIR__ . '/../../app/Auth/UserRepository.php';
 require __DIR__ . '/../../app/Apps/AppRepository.php';
+
+\Core\Env::load(__DIR__ . '/../../.env');
 
 use App\Auth\UserRepository;
 use App\Apps\AppRepository;

@@ -299,8 +299,8 @@ instead — the raw tables stay write-once, for auditing only.
 - [ ] d - Install Redis, or confirm the file-cache fallback works without it
 - [ ] e - Install Composer
 - [ ] f - Add `composer.json` with PSR-4 autoload mapping
-- [ ] g - Create `.env.example` with placeholder values
-- [ ] h - Document each required `.env` value in `.env.example` comments
+- [x] g - Create `.env.example` with placeholder values — `.env.example`, plus `core/Env.php` (dependency-free loader, since 11.e/f's Composer setup hasn't happened yet) wired into `public/index.php`, `public/dashboard/index.php`, `database/scripts/migrate.php`, `database/scripts/rollup-ad-stats-daily.php`, and both seeders
+- [x] h - Document each required `.env` value in `.env.example` comments
 - [ ] i - Write the local setup command list into `README.md`/`SETUP.md` (`composer install`, migrate, seed, serve)
 
 ---
