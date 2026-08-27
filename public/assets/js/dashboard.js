@@ -25,7 +25,7 @@
     { id: 'ss', code: 'SS', name: 'Skoolyst Social', domain: 'social.skoolyst.com', apiKey: 'sk_live_2b7e...9a10', status: 'active', placements: 3 },
     { id: 'st', code: 'ST', name: 'Skoolyst Teachers', domain: 'teachers.skoolyst.com', apiKey: 'sk_live_af31...c88d', status: 'active', placements: 3 },
     { id: 'jf', code: 'JF', name: 'Jaans Fabrics', domain: 'jaansfabrics.com', apiKey: 'sk_live_11e0...77bb', status: 'active', placements: 2 },
-    { id: 'sa', code: 'SA', name: 'Safi India Autos', domain: 'safiindiaautos.com', apiKey: 'sk_live_5d90...12ff', status: 'paused', placements: 2 },
+    { id: 'sa', code: 'SA', name: 'Saif Pindi Autos', domain: 'saifpindiautos.com', apiKey: 'sk_live_5d90...12ff', status: 'paused', placements: 2 },
   ];
 
   const FALLBACK_ADS = [
@@ -113,7 +113,7 @@
     {
       id: 'ad_1006',
       title: 'Vehicle Inspection Package — 20% Off This Month',
-      advertiser: 'Safi India Autos',
+      advertiser: 'Saif Pindi Autos',
       description: 'Full 40-point inspection before you buy or sell a used vehicle.',
       image: '../assets/ad-3.svg',
       cta: 'Book Inspection',
