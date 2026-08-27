@@ -277,8 +277,8 @@ instead — the raw tables stay write-once, for auditing only.
 - [x] a - Run database migrations (Section 5) on a fresh local DB
 - [x] b - Seed the DB with the same mock data used in the UI prototype
 - [x] c - Confirm core layer (`Database`, `Request`, `Response`, Auth middleware) boots with no errors
-- [ ] d - Confirm Auth module: login works end-to-end
-- [ ] e - Confirm Auth module: API-key issuing works end-to-end
+- [x] d - Confirm Auth module: login works end-to-end
+- [x] e - Confirm Auth module: API-key issuing works end-to-end
 - [ ] f - Confirm Ads module wired into `create-ad.php`
 - [ ] g - Confirm Ads module wired into `my-ads.php`
 - [ ] h - Confirm Admin module wired into `admin/ads.php`
