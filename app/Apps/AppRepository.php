@@ -20,6 +20,37 @@ class AppRepository
             ->fetchAll();
     }
 
+    public function findByCode(string $code): ?array
+    {
+        return Database::fetchOne('SELECT * FROM apps WHERE code = :code', ['code' => $code]);
+    }
+
+    /**
+     * Creates a placement (a named ad slot) for an app, or returns the
+     * existing one's id if $code is already taken for that app —
+     * `code` only has to be unique within its own app (5.2.g). Used by
+     * MockDataSeeder to build the same placements the UI prototype's
+     * mock-data.php hardcodes, and by any future "add placement" admin action.
+     */
+    public function findOrCreatePlacement(int $appId, string $code, string $label): int
+    {
+        $existing = Database::fetchOne(
+            'SELECT id FROM placements WHERE app_id = :app_id AND code = :code',
+            ['app_id' => $appId, 'code' => $code]
+        );
+
+        if ($existing !== null) {
+            return (int) $existing['id'];
+        }
+
+        Database::query(
+            'INSERT INTO placements (app_id, code, label) VALUES (:app_id, :code, :label)',
+            ['app_id' => $appId, 'code' => $code, 'label' => $label]
+        );
+
+        return (int) Database::connection()->lastInsertId();
+    }
+
     /**
      * Registers a new connected app and issues its first API key.
      * Returns the plaintext key alongside the app row — the ONLY time

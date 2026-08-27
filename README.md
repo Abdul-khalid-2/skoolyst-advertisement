@@ -274,8 +274,8 @@ instead — the raw tables stay write-once, for auditing only.
 
 ## 10. Build Order / Roadmap — 🟨 In Progress
 
-- [x] a - Run database migrations (Section 5) on a fresh local DB — `database/scripts/migrate.php` (applies every `database/migrations/*.php` in order, tracks progress in a `migrations` table, idempotent)
-- [x] b - Seed the DB with the same mock data used in the UI prototype — `database/seeders/MockDataSeeder.php` (reads `data/mock-data.php`, inserts the same apps/placements/advertisers/ads, idempotent)
+- [x] a - Run database migrations (Section 5) on a fresh local DB — `database/scripts/migrate.php` (applies every `database/migrations/*.php` in order, tracks progress in a `migrations` table, idempotent). *(A duplicate `database/migrate.php` runner came in from the claude-66 merge — same purpose, different flag set (`--fresh` vs `--rollback`) — and was dropped in favor of this one, which is the version referenced everywhere else and lives alongside the project's other CLI script, `database/scripts/rollup-ad-stats-daily.php`.)*
+- [x] b - Seed the DB with the same mock data used in the UI prototype — `database/seeders/MockDataSeeder.php` (reads `data/mock-data.php`, inserts the same apps/placements/advertisers/ads via the `AppRepository`/`AdRepository` methods — `findByCode()`/`findOrCreatePlacement()`/`findByTitle()`/`seedRaw()` — instead of raw queries in the seeder itself, idempotent; also writes each ad's mock impressions/clicks totals into `ad_stats_daily` since the mock data only carries aggregates, not individual events)
 - [x] c - Confirm core layer (`Database`, `Request`, `Response`, Auth middleware) boots with no errors
 - [x] d - Confirm Auth module: login works end-to-end
 - [x] e - Confirm Auth module: API-key issuing works end-to-end

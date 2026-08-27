@@ -3,30 +3,42 @@
 /**
  * MockDataSeeder
  *
- * Section 10.b. Loads data/mock-data.php — the single source of truth
- * every dashboard/admin page and js/dashboard.js already read from
- * (see that file's own doc-block) — and inserts the same apps,
- * placements, advertisers, and ads into the real tables, so the DB
- * and the UI prototype agree instead of drifting apart.
+ * Section 10.b. Seeds the real database with the exact same apps,
+ * placements, and ads that data/mock-data.php hardcodes for the UI
+ * prototype — so the dashboard/admin pages produce identical-looking
+ * output whether they're reading the mock array (today) or a real
+ * repository (once Section 10's later "wire module X into page Y"
+ * items land), without a fixture rewrite at that point.
  *
- * Separate from DatabaseSeeder.php (9.k), which seeds generic
- * admin/dev bootstrap accounts unrelated to the UI mock data.
- * Run this one after that one (or on its own — it doesn't depend on
- * DatabaseSeeder's rows).
+ * Not merged into DatabaseSeeder.php on purpose: that script is the
+ * minimal "make the app usable at all" bootstrap (one admin, one
+ * advertiser, one app) every environment needs, including production.
+ * This script is prototype fixture data — local/dev and staging only.
  *
- * What this does NOT seed: individual ad_impressions/ad_clicks rows.
- * `data/mock-data.php` only carries aggregate totals per ad (e.g.
- * `'impressions' => 48210`), not individual events — fabricating that
- * many fake event rows to back into the same total isn't "the same
- * mock data", it's invented data the prototype never had. The ads
- * table itself has no impressions/clicks columns (Section 5) — those
- * numbers only ever exist via ad_stats_daily (5.3), which the rollup
- * script (database/scripts/rollup-ad-stats-daily.php) builds from
- * real tracked events, not seed data.
+ * Uses the project's repository layer throughout (AppRepository::
+ * findByCode()/findOrCreatePlacement(), AdRepository::findByTitle()/
+ * seedRaw()) rather than raw Database::query() calls in the seeder
+ * itself — matches this project's "query logic only in Repositories"
+ * architecture rule, and keeps date/field normalization (e.g. empty
+ * startDate/endDate strings -> null) in one place (AdRepository::
+ * seedRaw()) instead of duplicated in every caller.
  *
- * Idempotent — matches existing rows by their natural key (apps by
- * `code`, placements by `app_id`+`code`, users by `email`, ads by
- * `app_id`+`title`) before inserting, so re-running this is safe.
+ * Idempotent — safe to re-run:
+ *   - apps are keyed by their unique `code`
+ *   - placements are keyed by (app_id, code) via AppRepository::findOrCreatePlacement()
+ *   - ads have no natural unique key, so this checks by exact `title`
+ *     (AdRepository::findByTitle()) before inserting
+ *   - advertiser users are keyed by `email`, same as DatabaseSeeder.php
+ *
+ * What this also seeds (beyond apps/placements/ads): ad_stats_daily
+ * aggregate rows. data/mock-data.php only carries aggregate totals per
+ * ad (e.g. `'impressions' => 48210`), not individual events — so those
+ * totals are written directly into ad_stats_daily (5.3), dated to each
+ * ad's start_date (or today, for the two ads with no dates), via the
+ * same upsert shape as the rollup script. This does NOT fabricate
+ * individual ad_impressions/ad_clicks event rows — inventing that many
+ * fake events to back into the same total isn't "the same mock data",
+ * and the raw event tables stay write-once/empty from a fresh seed.
  *
  * Usage:
  *   php database/seeders/MockDataSeeder.php
@@ -36,9 +48,11 @@ require __DIR__ . '/../../core/Database.php';
 require __DIR__ . '/../../app/Auth/UserModel.php';
 require __DIR__ . '/../../app/Auth/UserRepository.php';
 require __DIR__ . '/../../app/Apps/AppRepository.php';
+require __DIR__ . '/../../app/Ads/AdRepository.php';
 
 use App\Auth\UserRepository;
 use App\Apps\AppRepository;
+use App\Ads\AdRepository;
 use Core\Database;
 
 $mockData = require __DIR__ . '/../../data/mock-data.php';
@@ -49,133 +63,180 @@ $seedPassword = getenv('SEED_PASSWORD') ?: 'ChangeMe123!';
 
 $users = new UserRepository();
 $apps = new AppRepository();
+$ads = new AdRepository();
 
-/** @var array<string, int> Maps mock app id (e.g. 'sk') to the real apps.id. */
+// ---------------------------------------------------------------------
+// 1. Apps — data/mock-data.php's 'apps' array. The mock 'apiKey' values
+//    (e.g. "sk_live_9c1c...4f2a") are already-redacted UI display
+//    strings, not real keys, so a fresh real key is issued instead via
+//    the normal 6.d/6.e path — never the mock string.
+// ---------------------------------------------------------------------
+echo "==> Seeding apps\n";
+
+/** @var array<string, int> $appIdByMockId Maps mock-data.php's short 'id' (e.g. 'sk') to the real DB app_id. */
 $appIdByMockId = [];
 
-/** @var array<string, int> Maps "mockAppId:placementCode" to the real placements.id. */
-$placementIdByKey = [];
-
-/** @var array<string, int> Maps advertiser email to the real users.id. */
-$userIdByEmail = [];
-
-echo "==> Seeding apps + placements\n";
-
 foreach ($mockData['apps'] as $mockApp) {
-    $existing = Database::fetchOne('SELECT id, status FROM apps WHERE code = :code', ['code' => $mockApp['id']]);
+    $existing = $apps->findByCode($mockApp['code']);
 
-    if ($existing === null) {
-        $created = $apps->createWithApiKey($mockApp['name'], $mockApp['id'], $mockApp['domain']);
-        $appId = (int) $created['app']['id'];
-
-        if ($mockApp['status'] !== 'active') {
-            Database::query('UPDATE apps SET status = :status WHERE id = :id', ['status' => $mockApp['status'], 'id' => $appId]);
-        }
-
-        echo "    Created app '{$mockApp['id']}' ({$mockApp['name']}) — API key (shown once): {$created['api_key']}\n";
-    } else {
-        $appId = (int) $existing['id'];
-        echo "    Skipped app '{$mockApp['id']}' — already exists\n";
-    }
-
-    $appIdByMockId[$mockApp['id']] = $appId;
-
-    foreach ($mockData['placementsByApp'][$mockApp['id']] ?? [] as $mockPlacement) {
-        $existingPlacement = Database::fetchOne(
-            'SELECT id FROM placements WHERE app_id = :app_id AND code = :code',
-            ['app_id' => $appId, 'code' => $mockPlacement['value']]
-        );
-
-        if ($existingPlacement === null) {
-            Database::query(
-                'INSERT INTO placements (app_id, code, label) VALUES (:app_id, :code, :label)',
-                ['app_id' => $appId, 'code' => $mockPlacement['value'], 'label' => $mockPlacement['label']]
-            );
-            $placementId = (int) Database::connection()->lastInsertId();
-            echo "    Created placement '{$mockPlacement['value']}' for '{$mockApp['id']}'\n";
-        } else {
-            $placementId = (int) $existingPlacement['id'];
-        }
-
-        $placementIdByKey["{$mockApp['id']}:{$mockPlacement['value']}"] = $placementId;
-    }
-}
-
-echo "==> Seeding advertiser users\n";
-
-foreach ($mockData['ads'] as $mockAd) {
-    $advertiserName = $mockAd['advertiser'];
-    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($advertiserName)));
-    $email = "{$slug}@example.com";
-
-    if (isset($userIdByEmail[$email])) {
+    if ($existing !== null) {
+        $appIdByMockId[$mockApp['id']] = (int) $existing['id'];
+        echo "    Skipped — app '{$mockApp['code']}' already exists\n";
         continue;
     }
 
-    $existingUser = $users->findByEmail($email);
-
-    if ($existingUser === null) {
-        $user = $users->create($advertiserName, $email, password_hash($seedPassword, PASSWORD_DEFAULT), 'advertiser');
-        echo "    Created advertiser user for '{$advertiserName}' ({$email})\n";
-    } else {
-        $user = $existingUser;
-        echo "    Skipped advertiser user for '{$advertiserName}' — already exists\n";
-    }
-
-    $userIdByEmail[$email] = $user->id;
+    $created = $apps->createWithApiKey($mockApp['name'], $mockApp['code'], $mockApp['domain']);
+    $appIdByMockId[$mockApp['id']] = (int) $created['app']['id'];
+    echo "    Created app '{$mockApp['code']}' ({$mockApp['name']})\n";
 }
 
+// ---------------------------------------------------------------------
+// 2. Placements — data/mock-data.php's 'placementsByApp', keyed by the
+//    same mock app id.
+// ---------------------------------------------------------------------
+echo "==> Seeding placements\n";
+
+/** @var array<string, int> $placementIdByCode Maps "mockAppId:code" to the real DB placement_id. */
+$placementIdByCode = [];
+
+foreach ($mockData['placementsByApp'] as $mockAppId => $placements) {
+    $appId = $appIdByMockId[$mockAppId];
+
+    foreach ($placements as $placement) {
+        $placementId = $apps->findOrCreatePlacement($appId, $placement['value'], $placement['label']);
+        $placementIdByCode["{$mockAppId}:{$placement['value']}"] = $placementId;
+    }
+}
+
+echo '    ' . count($placementIdByCode) . " placement(s) in place\n";
+
+// ---------------------------------------------------------------------
+// 3. One advertiser user per distinct advertiser name in mock-data.php's
+//    'ads' array, so admin/ads.php's advertiser column has a real user
+//    to attribute each ad to (the real `ads` table has no separate
+//    "advertiser company name" field — ownership is by user_id, same as
+//    a real advertiser signing up via AuthController::register).
+// ---------------------------------------------------------------------
+echo "==> Seeding advertiser users (one per mock advertiser)\n";
+
+/** @var array<string, int> $userIdByAdvertiserName */
+$userIdByAdvertiserName = [];
+
+foreach ($mockData['ads'] as $mockAd) {
+    $name = $mockAd['advertiser'];
+
+    if (isset($userIdByAdvertiserName[$name])) {
+        continue;
+    }
+
+    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+    $email = "{$slug}@advertisers.example";
+
+    $user = $users->findByEmail($email);
+
+    if ($user === null) {
+        $user = $users->create($name, $email, password_hash($seedPassword, PASSWORD_DEFAULT), 'advertiser');
+        echo "    Created advertiser user for '{$name}' ({$email})\n";
+    } else {
+        echo "    Skipped — advertiser user for '{$name}' already exists\n";
+    }
+
+    $userIdByAdvertiserName[$name] = $user->id;
+}
+
+// ---------------------------------------------------------------------
+// 4. Ads — data/mock-data.php's 'ads' array, with the exact status
+//    (active/pending/paused/rejected/draft/ended) the mock UI shows,
+//    via AdRepository::seedRaw() rather than the normal create() path
+//    (which always forces 'pending').
+// ---------------------------------------------------------------------
 echo "==> Seeding ads\n";
 
+$adIdByMockId = [];
+
 foreach ($mockData['ads'] as $mockAd) {
-    $appId = $appIdByMockId[$mockAd['app']] ?? null;
-    $placementId = $placementIdByKey["{$mockAd['app']}:{$mockAd['placement']}"] ?? null;
+    $existing = $ads->findByTitle($mockAd['title']);
 
-    if ($appId === null || $placementId === null) {
-        fwrite(STDERR, "    Skipped ad '{$mockAd['id']}' — unknown app/placement '{$mockAd['app']}/{$mockAd['placement']}'\n");
+    if ($existing !== null) {
+        $adIdByMockId[$mockAd['id']] = (int) $existing['id'];
+        echo "    Skipped — ad '{$mockAd['title']}' already exists\n";
         continue;
     }
 
-    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($mockAd['advertiser'])));
-    $userId = $userIdByEmail["{$slug}@example.com"];
+    $placementKey = "{$mockAd['app']}:{$mockAd['placement']}";
 
-    $existingAd = Database::fetchOne(
-        'SELECT id FROM ads WHERE app_id = :app_id AND title = :title',
-        ['app_id' => $appId, 'title' => $mockAd['title']]
-    );
-
-    if ($existingAd !== null) {
-        echo "    Skipped ad '{$mockAd['id']}' — already exists\n";
+    if (!isset($placementIdByCode[$placementKey])) {
+        fwrite(STDERR, "    Skipping '{$mockAd['title']}' — no placement '{$mockAd['placement']}' for app '{$mockAd['app']}'.\n");
         continue;
     }
 
-    Database::query(
+    $adId = $ads->seedRaw([
+        'user_id' => $userIdByAdvertiserName[$mockAd['advertiser']],
+        'app_id' => $appIdByMockId[$mockAd['app']],
+        'placement_id' => $placementIdByCode[$placementKey],
+        'title' => $mockAd['title'],
+        'description' => $mockAd['description'],
+        'image_path' => $mockAd['image'],
+        'cta_text' => $mockAd['cta'],
+        'click_url' => $mockAd['url'],
+        'status' => $mockAd['status'],
+        'rejection_reason' => $mockAd['rejectionReason'] ?? null,
+        'start_date' => $mockAd['startDate'] ?? null,
+        'end_date' => $mockAd['endDate'] ?? null,
+    ]);
+
+    $adIdByMockId[$mockAd['id']] = $adId;
+    echo "    Created ad '{$mockAd['title']}' (status: {$mockAd['status']})\n";
+}
+
+// ---------------------------------------------------------------------
+// 5. Impressions/clicks — mock-data.php stores these as pre-aggregated
+//    totals (e.g. 48210 impressions), not individual raw events. Since
+//    5.3's whole design point is that dashboards read aggregated
+//    ad_stats_daily rather than counting raw event rows, seeding
+//    48,000+ individual INSERTs to reproduce that number isn't the
+//    right fidelity target — the totals are written directly into
+//    ad_stats_daily instead, dated to each ad's start_date (or today,
+//    for the two ads with no dates), so the existing dashboard chart
+//    (5.3.d) shows the same numbers the mock UI does.
+// ---------------------------------------------------------------------
+echo "==> Seeding ad_stats_daily totals\n";
+
+foreach ($mockData['ads'] as $mockAd) {
+    if (($mockAd['impressions'] ?? 0) === 0 && ($mockAd['clicks'] ?? 0) === 0) {
+        continue;
+    }
+
+    $adId = $adIdByMockId[$mockAd['id']] ?? null;
+
+    if ($adId === null) {
+        continue; // The ad itself was skipped above (e.g. a missing placement).
+    }
+
+    $date = !empty($mockAd['startDate']) ? $mockAd['startDate'] : date('Y-m-d');
+
+    \Core\Database::query(
         <<<SQL
-            INSERT INTO ads (
-                user_id, app_id, placement_id, title, description, image_path,
-                cta_text, click_url, status, rejection_reason, start_date, end_date
-            ) VALUES (
-                :user_id, :app_id, :placement_id, :title, :description, :image_path,
-                :cta_text, :click_url, :status, :rejection_reason, :start_date, :end_date
-            )
+            INSERT INTO ad_stats_daily (ad_id, date, impressions, clicks)
+            VALUES (:ad_id, :date, :impressions, :clicks)
+            ON DUPLICATE KEY UPDATE impressions = :impressions_update, clicks = :clicks_update
         SQL,
         [
-            'user_id' => $userId,
-            'app_id' => $appId,
-            'placement_id' => $placementId,
-            'title' => $mockAd['title'],
-            'description' => $mockAd['description'],
-            'image_path' => $mockAd['image'],
-            'cta_text' => $mockAd['cta'],
-            'click_url' => $mockAd['url'],
-            'status' => $mockAd['status'],
-            'rejection_reason' => $mockAd['rejectionReason'] ?? null,
-            'start_date' => $mockAd['startDate'] !== '' ? $mockAd['startDate'] : null,
-            'end_date' => $mockAd['endDate'] !== '' ? $mockAd['endDate'] : null,
+            'ad_id' => $adId,
+            'date' => $date,
+            'impressions' => $mockAd['impressions'],
+            'clicks' => $mockAd['clicks'],
+            // MySQL's native prepared statements (Database.php runs with
+            // EMULATE_PREPARES => false) reject reusing the same named
+            // parameter twice in one query — same reason
+            // AdStatsRepository::rollupForDate() binds its date three
+            // times under three different names.
+            'impressions_update' => $mockAd['impressions'],
+            'clicks_update' => $mockAd['clicks'],
         ]
     );
 
-    echo "    Created ad '{$mockAd['id']}' ({$mockAd['title']})\n";
+    echo "    {$mockAd['title']}: {$mockAd['impressions']} impressions, {$mockAd['clicks']} clicks on {$date}\n";
 }
 
 echo "==> Done\n";
