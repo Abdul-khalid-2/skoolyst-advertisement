@@ -21,6 +21,34 @@ class AppRepository
     }
 
     /**
+     * Every active app plus its own placements, nested — what the
+     * advertiser-facing "new ad" form (create-ad.php, 10.f) needs to
+     * populate its app/placement pickers with real ids instead of
+     * data/mock-data.php's string codes, which can't satisfy the
+     * `ads.app_id`/`ads.placement_id` foreign keys. A paused app can't
+     * receive new ads, so it's excluded here rather than filtered
+     * client-side.
+     *
+     * @return array<int, array{id: int, name: string, code: string, domain: string, placements: array<int, array{id: int, code: string, label: string}>}>
+     */
+    public function allActiveWithPlacements(): array
+    {
+        $apps = Database::query(
+            "SELECT id, name, code, domain FROM apps WHERE status = 'active' ORDER BY name ASC"
+        )->fetchAll();
+
+        foreach ($apps as &$app) {
+            $app['placements'] = Database::query(
+                'SELECT id, code, label FROM placements WHERE app_id = :app_id ORDER BY label ASC',
+                ['app_id' => $app['id']]
+            )->fetchAll();
+        }
+        unset($app);
+
+        return $apps;
+    }
+
+    /**
      * Registers a new connected app and issues its first API key.
      * Returns the plaintext key alongside the app row — the ONLY time
      * the plaintext ever exists outside the admin's clipboard; only

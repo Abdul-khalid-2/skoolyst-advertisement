@@ -14,6 +14,12 @@ use App\Apps\AppController;
 return [
     [
         'method' => 'GET',
+        'path' => '/api/v1/advertiser/apps',
+        'auth' => true,
+        'handler' => [AppController::class, 'forAdvertiser'],
+    ],
+    [
+        'method' => 'GET',
         'path' => '/api/v1/admin/apps',
         'auth' => true,
         'handler' => [AppController::class, 'index'],

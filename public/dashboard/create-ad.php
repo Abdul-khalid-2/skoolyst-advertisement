@@ -152,13 +152,19 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-$pageScript = <<<'JS'
+$pageScript = <<<JS
 (function () {
   'use strict';
 
-  const apps = SkoolystAdsMock.apps;
-  const placementsByApp = SkoolystAdsMock.placementsByApp;
+  // Real apps/placements (10.f) — fetched from the DB-backed
+  // /api/v1/advertiser/apps endpoint instead of data/mock-data.php's
+  // string codes, which can't satisfy the ads table's app_id/
+  // placement_id foreign keys. Edit mode (below) still reads the
+  // mock ad list; wiring my-ads.php/edit to the real API is 10.g,
+  // not this item.
+  let liveApps = [];
   let selectedApp = null;
+  let selectedPlacementId = null;
   let currentStep = 1;
   const totalSteps = 3;
   let previewVariant = 'main';
@@ -174,14 +180,17 @@ $pageScript = <<<'JS'
   }
 
   const grid = document.getElementById('app-checkgrid');
-  grid.innerHTML = apps.map(function (app) {
-    return (
-      '<label class="db-check-card">' +
-        '<input type="radio" name="target-app" value="' + app.id + '">' +
-        '<span><span>' + app.name + '</span><small>' + app.domain + '</small></span>' +
-      '</label>'
-    );
-  }).join('');
+
+  function renderAppGrid() {
+    grid.innerHTML = liveApps.map(function (app) {
+      return (
+        '<label class="db-check-card">' +
+          '<input type="radio" name="target-app" value="' + app.id + '">' +
+          '<span><span>' + escapeHtml(app.name) + '</span><small>' + escapeHtml(app.domain) + '</small></span>' +
+        '</label>'
+      );
+    }).join('') || '<p class="text-muted mb-0">No connected apps available yet.</p>';
+  }
 
   grid.addEventListener('change', function (e) {
     if (e.target.name !== 'target-app') return;
@@ -192,13 +201,39 @@ $pageScript = <<<'JS'
 
   function populatePlacements(appId) {
     const select = document.getElementById('f-placement');
-    const options = placementsByApp[appId] || [];
+    const app = liveApps.find(function (a) { return String(a.id) === String(appId); });
+    const options = app ? app.placements : [];
+    selectedPlacementId = null;
     select.innerHTML = options.map(function (p) {
-      return '<option value="' + p.value + '">' + p.label + '</option>';
+      return '<option value="' + p.id + '">' + escapeHtml(p.label) + '</option>';
     }).join('') || '<option value="">No placements for this app</option>';
   }
 
-  if (editingAd) {
+  document.getElementById('f-placement').addEventListener('change', function (e) {
+    selectedPlacementId = e.target.value || null;
+  });
+
+  // Fetch real apps+placements, then (only for edit mode, which still
+  // works off the mock ad) pre-select the ones matching the mock ad's
+  // string codes if a same-named app happens to exist.
+  fetch('{$baseHref}api/v1/advertiser/apps', { credentials: 'same-origin' })
+    .then(function (res) { return res.json(); })
+    .then(function (json) {
+      if (!json.success) {
+        showToast('Could not load connected apps.', 'error');
+        return;
+      }
+      liveApps = json.data.apps;
+      renderAppGrid();
+      if (editingAd) {
+        applyEditingAdSelection();
+      }
+    })
+    .catch(function () {
+      showToast('Could not load connected apps — check your connection.', 'error');
+    });
+
+  function applyEditingAdSelection() {
     document.getElementById('f-advertiser').value = editingAd.advertiser;
     document.getElementById('f-title').value = editingAd.title;
     document.getElementById('f-desc').value = editingAd.description;
@@ -206,14 +241,10 @@ $pageScript = <<<'JS'
     document.getElementById('f-url').value = editingAd.url;
     document.getElementById('f-start').value = editingAd.startDate;
     document.getElementById('f-end').value = editingAd.endDate;
-    selectedApp = editingAd.app;
-    const radio = grid.querySelector('input[value="' + editingAd.app + '"]');
-    if (radio) radio.checked = true;
-    populatePlacements(editingAd.app);
-    document.getElementById('f-placement').value = editingAd.placement;
     const drop = document.getElementById('file-drop');
     drop.classList.add('has-image');
     drop.innerHTML = '<img src="' + editingAd.image + '" alt="">';
+    updatePreview();
   }
 
   function wireCount(inputId, countId) {
@@ -338,8 +369,66 @@ $pageScript = <<<'JS'
 
   document.getElementById('ad-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    showToast(editingAd ? 'Changes submitted for review.' : 'Ad submitted for review.', 'success');
-    window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+
+    // Edit mode still goes through my-ads.php's real PATCH wiring
+    // (10.g) — out of scope here. Only the "new ad" path below is
+    // 10.f's target.
+    if (editingAd) {
+      showToast('Changes submitted for review.', 'success');
+      window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+      return;
+    }
+
+    if (!selectedApp) {
+      showToast('Please choose which app this ad should run on.', 'error');
+      return;
+    }
+    if (!selectedPlacementId) {
+      showToast('Please choose a placement.', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', document.getElementById('f-title').value.trim());
+    formData.append('description', document.getElementById('f-desc').value.trim());
+    formData.append('cta_text', document.getElementById('f-cta').value.trim());
+    formData.append('click_url', document.getElementById('f-url').value.trim());
+    formData.append('start_date', document.getElementById('f-start').value);
+    formData.append('end_date', document.getElementById('f-end').value);
+    formData.append('app_id', selectedApp);
+    formData.append('placement_id', selectedPlacementId);
+
+    const file = fileInput.files && fileInput.files[0];
+    if (file) formData.append('image', file);
+
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Submitting…';
+
+    fetch('{$baseHref}api/v1/advertiser/ads', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': document.getElementById('_csrf').value },
+      body: formData
+    })
+      .then(function (res) {
+        return res.json().then(function (json) { return { ok: res.ok, json: json }; });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.json.success) {
+          const message = (result.json.error && result.json.error.message) || 'Could not submit ad.';
+          showToast(message, 'error');
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = '<i class="bi bi-send-check me-1"></i> Submit for Review';
+          return;
+        }
+        showToast('Ad submitted for review.', 'success');
+        window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+      })
+      .catch(function () {
+        showToast('Network error — please try again.', 'error');
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-send-check me-1"></i> Submit for Review';
+      });
   });
 
   document.getElementById('btn-save-draft').addEventListener('click', function () {

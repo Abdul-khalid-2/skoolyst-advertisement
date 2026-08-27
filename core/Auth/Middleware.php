@@ -120,11 +120,20 @@ class Middleware
             return;
         }
 
+        // Secure cookies are dropped outright by browsers over plain
+        // HTTP — fine in staging/production (always HTTPS), but it
+        // would silently break every session-based login on local
+        // XAMPP/`php -S` dev (Section 11), where APP_ENV=local and
+        // there's no TLS. Only require Secure once the app itself
+        // isn't running as local.
+        $appConfig = require __DIR__ . '/../../config/app.php';
+        $isLocal = ($appConfig['env'] ?? 'local') === 'local';
+
         session_set_cookie_params([
             'lifetime' => 0,
             'path' => '/',
             'domain' => '',
-            'secure' => true,
+            'secure' => !$isLocal,
             'httponly' => true,
             'samesite' => 'Lax',
         ]);

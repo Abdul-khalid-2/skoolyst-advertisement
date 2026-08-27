@@ -9,14 +9,12 @@
  */
 
 require __DIR__ . '/../core/Env.php';
-require __DIR__ . '/../core/Auth/Middleware.php';
-require __DIR__ . '/../core/Security/Csrf.php';
-require __DIR__ . '/../core/Security/CsrfMiddleware.php';
-require __DIR__ . '/../core/RateLimiter.php';
+require __DIR__ . '/../core/Autoload.php';
 
 use Core\Auth\Middleware;
 use Core\Security\CsrfMiddleware;
 use Core\RateLimiter;
+use Core\Response;
 
 Core\Env::load(__DIR__ . '/../.env');
 
@@ -27,6 +25,18 @@ $routes = array_merge(
 
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// Routes are defined root-relative (e.g. `/api/v1/ads/serve`), which
+// only matches as-is when public/ is a vhost's document root. Local
+// dev under XAMPP/`htdocs` instead reaches this file through a
+// subdirectory (e.g. `/Projects/.../public/index.php`), so REQUEST_URI
+// carries that whole prefix too. Strip it — based on where this
+// script actually lives (SCRIPT_NAME), not a hardcoded guess — so the
+// same route table matches in both setups without editing every path.
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+if ($scriptDir !== '' && $scriptDir !== '/' && str_starts_with($path, $scriptDir)) {
+    $path = substr($path, strlen($scriptDir)) ?: '/';
+}
 
 $matched = null;
 foreach ($routes as $route) {
@@ -89,6 +99,21 @@ if (!$allowed) {
     return;
 }
 
-// Handler dispatch is wired up once the router gains dynamic-segment
-// matching for `{id}` paths (see note in app/Ads/routes.php).
-echo 'ok';
+// Handler dispatch — exact-path routes only for now. Dynamic-segment
+// paths (`{id}`, `{filename}`) still never match in the loop above
+// (Section 10.f note in app/Ads/routes.php), so they simply won't
+// reach here yet; that's tracked separately from this fix, which
+// only makes an already-matched route actually call its controller
+// instead of the `echo 'ok'` stub every route was silently hitting.
+[$class, $methodName] = $matched['handler'];
+
+try {
+    $controller = new $class();
+    $controller->$methodName();
+} catch (\Throwable $e) {
+    $isLocal = (require __DIR__ . '/../config/app.php')['debug'];
+    Response::error([
+        'code' => 'server_error',
+        'message' => $isLocal ? $e->getMessage() : 'Something went wrong.',
+    ], 500);
+}

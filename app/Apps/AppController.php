@@ -37,6 +37,21 @@ class AppController
     }
 
     /**
+     * GET /api/v1/advertiser/apps
+     * Advertiser-only (6.g). Feeds create-ad.php's app/placement
+     * pickers with real ids (10.f) — never the admin-only `index()`
+     * above, which advertisers have no role to call.
+     */
+    public function forAdvertiser(): void
+    {
+        if (Middleware::requireRole(['advertiser']) === null) {
+            return;
+        }
+
+        Response::success(['apps' => $this->apps->allActiveWithPlacements()]);
+    }
+
+    /**
      * POST /api/v1/admin/apps
      * Registers a connected app and issues its first API key (6.d),
      * stored as a hash (6.e). The plaintext key is returned exactly
