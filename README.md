@@ -19,7 +19,7 @@ This document is the build plan, broken into small, self-contained tasks so each
 | 7 | Performance & Optimization | ✅ Done |
 | 8 | SEO | ✅ Done |
 | 9 | Folder Structure | ✅ Done |
-| 10 | Build Order / Roadmap | ✅ Done |
+| 10 | Build Order / Roadmap | 🟨 In Progress |
 | 11 | Tech Stack & Environment Setup | ⬜ Not Started |
 | 12 | Coding Standards & Git Workflow | ⬜ Not Started |
 | 13 | Testing & QA | ⬜ Not Started |
@@ -272,22 +272,22 @@ instead — the raw tables stay write-once, for auditing only.
 
 ---
 
-## 10. Build Order / Roadmap — ✅ Done
+## 10. Build Order / Roadmap — 🟨 In Progress
 
-- [x] a - Run database migrations (Section 5) on a fresh local DB — `database/scripts/migrate.php` (new: applies every `database/migrations/*.php` in order, tracks progress in a `migrations` table, idempotent)
-- [x] b - Seed the DB with the same mock data used in the UI prototype — `database/seeders/MockDataSeeder.php` (new: reads `data/mock-data.php`, inserts the same apps/placements/advertisers/ads, idempotent)
-- [ ] c - Confirm core layer (`Database`, `Request`, `Response`, Auth middleware) boots with no errors
-- [ ] d - Confirm Auth module: login works end-to-end
-- [ ] e - Confirm Auth module: API-key issuing works end-to-end
-- [ ] f - Confirm Ads module wired into `create-ad.php`
-- [ ] g - Confirm Ads module wired into `my-ads.php`
-- [ ] h - Confirm Admin module wired into `admin/ads.php`
-- [ ] i - Confirm Admin module wired into `admin/apps.php`
-- [ ] j - Confirm public API matches `api-docs.php` exactly (spot check each endpoint)
-- [ ] k - Confirm stats rollup job is scheduled and running
-- [ ] l - Run the Section 6 security checklist as a pass/fail review
-- [ ] m - Run the Section 7 performance checklist as a pass/fail review
-- [ ] n - Run the Section 8 SEO checklist as a pass/fail review
+- [x] a - Run database migrations (Section 5) on a fresh local DB — `database/scripts/migrate.php` (applies every `database/migrations/*.php` in order, tracks progress in a `migrations` table, idempotent)
+- [x] b - Seed the DB with the same mock data used in the UI prototype — `database/seeders/MockDataSeeder.php` (reads `data/mock-data.php`, inserts the same apps/placements/advertisers/ads, idempotent)
+- [x] c - Confirm core layer (`Database`, `Request`, `Response`, Auth middleware) boots with no errors
+- [x] d - Confirm Auth module: login works end-to-end
+- [x] e - Confirm Auth module: API-key issuing works end-to-end
+- [ ] f - Confirm Ads module wired into `create-ad.php` — the advertiser's "new ad" form must submit through the real `AdRepository`/validator (CSRF check, image upload via `core/Uploads.php`'s hardened non-executable path, insert with `status='pending'`) instead of reading/writing mock data
+- [ ] g - Confirm Ads module wired into `my-ads.php` — the advertiser's ad list must come from the DB filtered by the logged-in `user_id`, paginated per `config/app.php`'s defaults — not the static mock list
+- [ ] h - Confirm Admin module wired into `admin/ads.php` — approve/reject actions must call the real `AdRepository` status update and write an `AuditLog` entry (6.v), not just change the UI
+- [ ] i - Confirm Admin module wired into `admin/apps.php` — actions like API-key regenerate must call the real `AppRepository` method and write an `AuditLog` entry (6.w)
+- [ ] j - Confirm public API matches `api-docs.php` exactly (spot check each endpoint) — walk every endpoint documented in `public/api-docs.php` against the real `routes/api.php` + controllers so the docs and actual behavior don't drift apart
+- [ ] k - Confirm stats rollup job is scheduled and running — `database/scripts/rollup-ad-stats-daily.php` exists as a script; this item is about actually registering the cron entry (per `cron/README.md`) and confirming `ad_stats_daily` is really being populated daily
+- [ ] l - Run the Section 6 security checklist as a pass/fail review — re-test the already-`[x]`'d Section 6 items against the wired-up app (e.g. actually try uploading a `.php` file as an ad image and confirm it's rejected), not just confirm the code exists
+- [ ] m - Run the Section 7 performance checklist as a pass/fail review — verify pagination limits, caching, DB indexes, and API rate limiting under real use, same pass/fail treatment as l
+- [ ] n - Run the Section 8 SEO checklist as a pass/fail review — verify the already-implemented Section 8 items (meta tags, sitemap, robots.txt, etc.) the same way
 
 ---
 
