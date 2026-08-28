@@ -365,7 +365,7 @@ Not runnable yet (no server exists), but for when it is:
   - *b — PASS (cross-referenced against 10.k's already-verified end-to-end rollup test — nothing new to add).*
   - *c/d — PASS, verified live:* called `/ads/serve` for a real placement, confirmed a cache file was written under `storage/cache/`; changed the ad's title directly in the DB and called the same endpoint again within the 30s TTL — it kept serving the old (cached) title; waited for the TTL to expire and called again — it picked up the new title. Cache read-before-DB and write-after-DB both genuinely work, not just present in code.
   - *e — PASS at the code level* (`config/opcache.ini` has the right production settings) — no real production PHP-FPM host exists yet to verify against (Section 14 is still "Not Started"), same caveat as 10.k's cron item.
-  - *f — FAIL, found a real bug:* `deploy.sh` runs `composer install --no-dev --optimize-autoloader`, but there is no `composer.json` anywhere in this repo — the app currently autoloads via the dependency-free `core/Autoload.php` (its own doc-block says Composer's autoloader is meant to replace it "once Composer is set up," which per `tests/README.md` is still only assumed, not decided/done). On a real deploy this step would simply fail (`composer.json not found`). *Not fixed here* — introducing `composer.json`/`vendor/` now would mean deciding and standing up the whole dependency-management setup mid-test-pass, which is Section 11's job, not a one-line fix; flagging for Section 11 instead of scope-creeping into it.
+  - *f — FAIL when tested, now FIXED via 11.f:* `deploy.sh` runs `composer install --no-dev --optimize-autoloader`, but at the time of this test there was no `composer.json` anywhere in this repo — the app autoloaded only via the dependency-free `core/Autoload.php`. On a real deploy this step would have simply failed (`composer.json not found`). **Resolved in roadmap item 11.f**: added `composer.json` with a PSR-4 mapping matching `core/Autoload.php`'s existing `App\`/`Core\` mapping, and verified live that `deploy.sh`'s exact install command now succeeds and the generated autoloader resolves real classes correctly.
   - *g/h — PASS* (cross-referenced against Section 6.o's already-verified resize/re-encode test — `core/Uploads.php` resizes to the exact 600×450 the ad card renders at and re-encodes JPEGs at quality 85).
   - *i — FAIL, found a real bug, now fixed:* the far-future `Cache-Control` header only existed inside `ImageController.php`, which never actually runs — it 500s on every request (the 10.j-flagged router bug: `{filename}` is never bound). The real production path (`public/uploads/ads/.htaccess` serves these files directly, per `public/.htaccess`'s "real file, not rewritten" rule) had no `Header`/cache directive at all, so real image responses were sending no `Cache-Control` whatsoever. **Fixed:** added a `mod_headers` block to `public/uploads/ads/.htaccess` setting `Cache-Control: public, max-age=31536000, immutable` on the actual image extensions served from that folder. Safe to cache this aggressively since uploaded filenames are randomized (6.q) — a changed image is always a new filename, never a stale cache of the old one.
   - *j — PASS:* `loading="lazy"` is present on every real ad-card image — the shared `ads-table.php` component (used by both the advertiser "My Ads" list and admin moderation queue) and its JS-rendered equivalent in `dashboard.js` both have it. The only `<img>` tags without it are in `create-ad.php`'s own upload-preview widget (drag-drop preview, edit preview, live preview card) — those are single, already-visible images shown during ad creation, not off-screen list items, so lazy-loading doesn't apply there.
@@ -385,12 +385,20 @@ Not runnable yet (no server exists), but for when it is:
 
 **Status: 🟨 In Progress**
 
-- [ ] **a** — Confirm PHP 8.2+ is installed locally
+- [x] **a** — Confirm PHP 8.2+ is installed locally
+  - Confirmed via `composer --version` output: `PHP version 8.2.12 (B:\xampp-8.2\php\php.exe)` — meets the 8.2+ requirement.
 - [ ] **b** — Confirm MySQL 8.0 is installed locally
-- [ ] **c** — Set up Nginx + PHP-FPM (or local equivalent, e.g. `php -S`)
-- [ ] **d** — Install Redis, or confirm the file-cache fallback works without it
-- [ ] **e** — Install Composer
-- [ ] **f** — Add `composer.json` with PSR-4 autoload mapping
+- [x] **c** — Set up Nginx + PHP-FPM (or local equivalent, e.g. `php -S`)
+  - Using XAMPP (Apache + mod_php) as the local equivalent — confirmed working: app runs correctly under XAMPP.
+- [x] **d** — Install Redis, or confirm the file-cache fallback works without it
+  - File-cache fallback already live-verified in 7.c/d (cache write on miss, stale-serve within TTL, refresh after expiry, all confirmed against real HTTP requests) — no Redis needed locally.
+- [x] **e** — Install Composer
+  - Confirmed via `composer --version`: Composer 2.9.7 installed and working.
+- [x] **f** — Add `composer.json` with PSR-4 autoload mapping
+  - *Added `composer.json`* with the same `App\` → `app/`, `Core\` → `core/` mapping `core/Autoload.php`'s manual autoloader already uses — a drop-in equivalent, not a competing one, per that file's own doc-block.
+  - *Verified live, not just written:* ran `composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist` — the exact command `deploy.sh` runs — and it now succeeds (previously failed outright with no `composer.json` present, the bug flagged in 7.f/10.m). Loaded a real class (`App\Ads\AdRepository`) through the generated `vendor/autoload.php` and confirmed it resolves correctly, same for `Core\Cache`.
+  - *Not done here (separate, bigger task, not part of this item):* switching the app's entry points (`public/index.php`, dashboard/admin pages, CLI scripts) from `require core/Autoload.php` to `require vendor/autoload.php`. Both resolve the same classes identically, so this is a safe follow-up whenever it's picked up — not required to fix the 7.f deploy bug, since that only needed `composer.json` to exist.
+  - `composer.lock` committed alongside `composer.json` for reproducible installs (currently has zero real dependencies — just locks the PHP platform requirement).
 - [x] **g** — Create `.env.example` with placeholder values
   - *Implemented via:* `.env.example`, plus `core/Env.php` (dependency-free loader, since 11.e/f's Composer setup hasn't happened yet) wired into `public/index.php`, `public/dashboard/index.php`, `database/scripts/migrate.php`, `database/scripts/rollup-ad-stats-daily.php`, and both seeders.
 - [x] **h** — Document each required `.env` value in `.env.example` comments
@@ -674,12 +682,18 @@ Performance ke liye indexes lagaye — status+placement pe composite index, user
 
 | Point | Tafseel |
 |---|---|
+| **a** | PHP 8.2+ confirm ho gaya (`composer --version` output se: PHP 8.2.12). |
+| **c** | XAMPP (Apache + mod_php) local equivalent ke tor pe use ho raha hai, app usme sahi chal rahi hai. |
+| **d** | File-cache fallback already live-test ho chuka hai (Section 7.c/d) — Redis ki zaroorat nahi. |
+| **e** | Composer install confirm ho gaya (v2.9.7). |
+| **f** | `composer.json` PSR-4 mapping ke sath add kiya, `composer install --optimize-autoloader` (jo `deploy.sh` chalata hai) live verify kiya — pehle ye fail hota tha (7.f bug), ab pass. |
 | **g** | `.env.example` file bana di placeholder values ke sath. Sath hi `core/Env.php` (Composer-free loader — kyunke Composer setup abhi hua nahi) banaya aur `public/index.php`, `public/dashboard/index.php`, migrate script, rollup script, aur dono seeders mein wire kiya. |
 | **h** | Har required `.env` value ko `.env.example` mein comments ke sath document kiya. |
+| **i** | Local setup ke commands (`.env` banana, DB create, migrate, seed, serve) README ke top pe likh diye — Windows/XAMPP ke hisab se. |
 
 ### ⬜ Abhi baaki hai
 
-PHP 8.2+/MySQL 8.0 confirm karna, Nginx/PHP-FPM setup, Redis (ya file-cache fallback), Composer install, `composer.json` PSR-4 mapping, aur setup commands README/SETUP.md mein likhna.
+Sirf **b** — MySQL 8.0 local install confirm karna baaki hai (user khud check kar rahe hain).
 
 ---
 
