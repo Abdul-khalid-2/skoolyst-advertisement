@@ -57,7 +57,7 @@ function ads_table_rows(
         }
         $actions .= '</div>';
 
-        $rows .= '<tr data-ad-id="' . htmlspecialchars($ad['id']) . '">'
+        $rows .= '<tr data-ad-id="' . htmlspecialchars($ad['id']) . '" data-status="' . htmlspecialchars($ad['status']) . '" data-app="' . htmlspecialchars($appName) . '">'
             . '<td><div class="d-flex align-items-center gap-3">'
             . '<img src="' . htmlspecialchars($baseHref . $ad['image']) . '" class="db-table__thumb" alt="" loading="lazy">'
             . '<div><p class="db-table__title">' . htmlspecialchars($ad['title']) . '</p>'
@@ -71,4 +71,33 @@ function ads_table_rows(
             . '</tr>';
     }
     return $rows;
+}
+
+/**
+ * Maps one row from AdRepository::findAllForUser()/findByStatus()
+ * (10.g/10.h) into the shape ads_table_rows() above expects (see
+ * data/mock-data.php for that shape). Relies on app_name_by_id()'s
+ * existing fallback: when it finds no match in `$apps`, it returns
+ * its `$id` argument unchanged (see app_by_id() in app-chip.php) —
+ * so putting the already-JOIN-resolved app name straight into `app`
+ * and calling ads_table_rows() with an empty `$apps` array renders
+ * correctly with no changes to that shared helper.
+ *
+ * @param array<string, mixed> $row One row as returned by the repository methods above.
+ */
+function db_ad_row_to_display(array $row): array
+{
+    return [
+        'id' => (string) $row['id'],
+        'title' => $row['title'],
+        'image' => $row['image_path'] ? 'images/ads/' . $row['image_path'] : 'assets/img/ad-1.svg',
+        'status' => $row['status'],
+        'impressions' => (int) $row['impressions'],
+        'clicks' => (int) $row['clicks'],
+        'startDate' => $row['start_date'] ?? '',
+        'endDate' => $row['end_date'] ?? '',
+        'app' => $row['app_name'],
+        'placement' => $row['placement_label'],
+        'advertiser' => $row['advertiser_name'] ?? '',
+    ];
 }

@@ -44,6 +44,9 @@ class ModerationController
      * PATCH /api/v1/admin/ads/{id}/approve
      * Status update, then an audit-log write (6.v) so every
      * approve/reject decision has a permanent, attributable record.
+     * The write only happens once the status update itself actually
+     * matched a row — a 404 for a bad id shouldn't still log an
+     * action that never happened.
      */
     public function approve(): void
     {
@@ -58,6 +61,11 @@ class ModerationController
             return;
         }
 
+        if (!$this->ads->updateStatus($adId, 'active')) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
         AuditLog::write($adminId, 'ad.approve', 'ad', $adId);
 
         Response::success([]);
@@ -65,6 +73,8 @@ class ModerationController
 
     /**
      * PATCH /api/v1/admin/ads/{id}/reject
+     * `reason` is optional — shown to the advertiser on their side
+     * (my-ads.php, 10.g) when present.
      */
     public function reject(): void
     {
@@ -76,6 +86,13 @@ class ModerationController
         $adId = Request::int('ad_id');
         if ($adId === null) {
             Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $reason = Request::string('reason') ?: null;
+
+        if (!$this->ads->updateStatus($adId, 'rejected', $reason)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
             return;
         }
 

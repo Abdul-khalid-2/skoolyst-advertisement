@@ -72,7 +72,11 @@ class AdRepository
     /**
      * GET /admin/ads?status=pending — the admin moderation queue,
      * paginated at the DB level (7.l), same LIMIT/OFFSET interpolation
-     * rationale as findAllForUser() below.
+     * rationale as findAllForUser() below. Same joins as
+     * findAllForUser() plus the advertiser's name (`showAdvertiser`
+     * in views/components/ads-table.php, 10.h) — an admin reviewing
+     * the queue needs to know who submitted each ad, an advertiser
+     * viewing their own list already does.
      */
     public function findByStatus(string $status, int $page = 1, int $perPage = 20): array
     {
@@ -80,9 +84,69 @@ class AdRepository
         $offset = max(0, ($page - 1) * $perPage);
 
         return Database::query(
-            "SELECT * FROM ads WHERE status = :status ORDER BY created_at ASC LIMIT {$perPage} OFFSET {$offset}",
+            <<<SQL
+                SELECT
+                    ads.id, ads.title, ads.image_path, ads.status,
+                    ads.start_date, ads.end_date, ads.app_id,
+                    users.name AS advertiser_name,
+                    apps.name AS app_name,
+                    placements.label AS placement_label,
+                    COALESCE(stats.impressions, 0) AS impressions,
+                    COALESCE(stats.clicks, 0) AS clicks
+                FROM ads
+                INNER JOIN users ON users.id = ads.user_id
+                INNER JOIN apps ON apps.id = ads.app_id
+                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+                    FROM ad_stats_daily
+                    GROUP BY ad_id
+                ) stats ON stats.ad_id = ads.id
+                WHERE ads.status = :status
+                ORDER BY ads.created_at ASC
+                LIMIT {$perPage} OFFSET {$offset}
+            SQL,
             ['status' => $status]
         )->fetchAll();
+    }
+
+    /**
+     * Counts every status in one pass — backs the tab counters on
+     * admin/ads.php (10.h) without seven separate COUNT queries.
+     * Always returns every known status, zero-filled, so the caller
+     * never has to guard against a missing key.
+     *
+     * @return array<string, int>
+     */
+    public function countsByStatus(): array
+    {
+        $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
+
+        $rows = Database::query('SELECT status, COUNT(*) AS total FROM ads GROUP BY status')->fetchAll();
+
+        foreach ($rows as $row) {
+            $counts[$row['status']] = (int) $row['total'];
+            $counts['all'] += (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Admin moderation decision (10.h) — approve/reject both go
+     * through this one method, differing only in $status and whether
+     * a reason is attached. Returns false if $adId doesn't exist, so
+     * the controller can 404 instead of writing an AuditLog entry for
+     * an action that didn't actually happen.
+     */
+    public function updateStatus(int $adId, string $status, ?string $rejectionReason = null): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET status = :status, rejection_reason = :rejection_reason WHERE id = :id',
+            ['id' => $adId, 'status' => $status, 'rejection_reason' => $rejectionReason]
+        );
+
+        return $statement->rowCount() > 0;
     }
 
     /**
@@ -93,6 +157,13 @@ class AdRepository
      * Database::query() binds every param as a string, and MySQL's
      * native prepared statements (Database.php disables emulation)
      * reject a string operand in a LIMIT/OFFSET clause.
+     *
+     * Joins in the app name/placement label and each ad's lifetime
+     * impressions/clicks (summed from `ad_stats_daily`, never the raw
+     * event tables — 5.3.e) so my-ads.php (10.g) can render a row
+     * without a separate lookup per ad.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function findAllForUser(int $userId, int $page = 1, int $perPage = 20): array
     {
@@ -100,9 +171,43 @@ class AdRepository
         $offset = max(0, ($page - 1) * $perPage);
 
         return Database::query(
-            "SELECT * FROM ads WHERE user_id = :user_id ORDER BY created_at DESC LIMIT {$perPage} OFFSET {$offset}",
+            <<<SQL
+                SELECT
+                    ads.id, ads.title, ads.image_path, ads.status,
+                    ads.start_date, ads.end_date, ads.app_id,
+                    apps.name AS app_name,
+                    placements.label AS placement_label,
+                    COALESCE(stats.impressions, 0) AS impressions,
+                    COALESCE(stats.clicks, 0) AS clicks
+                FROM ads
+                INNER JOIN apps ON apps.id = ads.app_id
+                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+                    FROM ad_stats_daily
+                    GROUP BY ad_id
+                ) stats ON stats.ad_id = ads.id
+                WHERE ads.user_id = :user_id
+                ORDER BY ads.created_at DESC
+                LIMIT {$perPage} OFFSET {$offset}
+            SQL,
             ['user_id' => $userId]
         )->fetchAll();
+    }
+
+    /**
+     * Total row count behind findAllForUser() — my-ads.php (10.g) needs
+     * this to render "Page X of Y" against the real total, not just
+     * whether the current page happens to be full.
+     */
+    public function countForUser(int $userId): int
+    {
+        $row = Database::fetchOne(
+            'SELECT COUNT(*) AS total FROM ads WHERE user_id = :user_id',
+            ['user_id' => $userId]
+        );
+
+        return (int) ($row['total'] ?? 0);
     }
 
     /**

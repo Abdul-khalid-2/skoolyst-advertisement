@@ -18,6 +18,30 @@ use Core\Response;
 
 Core\Env::load(__DIR__ . '/../.env');
 
+/**
+ * Turn a route path with `{param}` placeholders (e.g.
+ * `/api/v1/admin/ads/{id}/approve`) into a regex so a real request
+ * path like `.../ads/42/approve` matches. Every current handler that
+ * needs an id reads it from the request body (Request::int('ad_id')
+ * in ModerationController etc.), not the URL, so the matched segment
+ * is only used to confirm the route, never extracted or bound.
+ * Segment-by-segment (not preg_quote on the whole string first) so
+ * `{id}`'s own braces don't get escaped before they're detected.
+ */
+function routePathToRegex(string $routePath): string
+{
+    $segments = array_map(
+        static function (string $segment): string {
+            return preg_match('/^\{[a-zA-Z_][a-zA-Z0-9_]*\}$/', $segment) === 1
+                ? '[^/]+'
+                : preg_quote($segment, '#');
+        },
+        explode('/', $routePath)
+    );
+
+    return implode('/', $segments);
+}
+
 $routes = array_merge(
     require __DIR__ . '/../routes/api-public.php',
     require __DIR__ . '/../routes/api-auth.php'
@@ -40,7 +64,10 @@ if ($scriptDir !== '' && $scriptDir !== '/' && str_starts_with($path, $scriptDir
 
 $matched = null;
 foreach ($routes as $route) {
-    if ($route['method'] === $method && $route['path'] === $path) {
+    if ($route['method'] !== $method) {
+        continue;
+    }
+    if (preg_match('#^' . routePathToRegex($route['path']) . '$#', $path)) {
         $matched = $route;
         break;
     }
@@ -99,12 +126,7 @@ if (!$allowed) {
     return;
 }
 
-// Handler dispatch — exact-path routes only for now. Dynamic-segment
-// paths (`{id}`, `{filename}`) still never match in the loop above
-// (Section 10.f note in app/Ads/routes.php), so they simply won't
-// reach here yet; that's tracked separately from this fix, which
-// only makes an already-matched route actually call its controller
-// instead of the `echo 'ok'` stub every route was silently hitting.
+// Handler dispatch.
 [$class, $methodName] = $matched['handler'];
 
 try {

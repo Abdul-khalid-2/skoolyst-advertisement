@@ -1,4 +1,5 @@
 <?php
+require __DIR__ . '/../../core/Autoload.php';
 require __DIR__ . '/../../views/bootstrap.php';
 
 $pageTitle  = 'Connected Apps';

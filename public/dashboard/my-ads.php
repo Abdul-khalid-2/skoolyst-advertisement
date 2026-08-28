@@ -1,5 +1,37 @@
 <?php
+require __DIR__ . '/../../core/Autoload.php';
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
+
+use App\Ads\AdRepository;
+use App\Apps\AppRepository;
+use Core\Auth\Middleware;
+
+Core\Env::load(__DIR__ . '/../../.env');
+
+// No login page exists yet (Section 6 was tested via direct API calls) —
+// this page still needs a real session to know whose ads to show, so a
+// visitor with none is sent to the marketing page rather than shown
+// someone else's data or a fatal error.
+$userId = Middleware::checkSession();
+if ($userId === null) {
+    header('Location: ../index.html');
+    exit;
+}
+
+$adRepo = new AdRepository();
+$appRepo = new AppRepository();
+
+$appConfig = require __DIR__ . '/../../config/app.php';
+$perPage = $appConfig['pagination']['default_per_page'];
+
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$totalAds = $adRepo->countForUser($userId);
+$totalPages = max(1, (int) ceil($totalAds / $perPage));
+$page = min($page, $totalPages);
+
+$rows = array_map('db_ad_row_to_display', $adRepo->findAllForUser($userId, $page, $perPage));
+$connectedApps = $appRepo->all();
 
 $pageTitle  = 'My Ads';
 $role       = 'advertiser';
@@ -9,7 +41,11 @@ $baseHref   = '../';
 $topbarActions = '<a href="create-ad.php" class="btn btn-sk-primary btn-sm px-3"><i class="bi bi-plus-lg me-1"></i> Create Ad</a>';
 $searchPlaceholder = 'Search by title or advertiser…';
 
-$allAdsRows = ads_table_rows($mockData['ads'], $mockData['apps'], $baseHref, false, false);
+// $apps passed as [] — db_ad_row_to_display() already resolved the app
+// name via the repository's JOIN, and app_name_by_id() falls back to
+// returning that name unchanged when it finds no match (see
+// views/components/ads-table.php).
+$allAdsRows = ads_table_rows($rows, [], $baseHref, false, false);
 
 ob_start();
 ?>
@@ -37,8 +73,8 @@ ob_start();
     </select>
     <select id="filter-app" class="db-filter-select">
       <option value="all">All Apps</option>
-      <?php foreach ($mockData['apps'] as $app): ?>
-        <option value="<?= htmlspecialchars($app['id']) ?>"><?= htmlspecialchars($app['name']) ?></option>
+      <?php foreach ($connectedApps as $app): ?>
+        <option value="<?= htmlspecialchars($app['name']) ?>"><?= htmlspecialchars($app['name']) ?></option>
       <?php endforeach; ?>
     </select>
     <span class="ms-auto small text-muted" id="results-count"></span>
@@ -53,7 +89,7 @@ ob_start();
     </table>
   </div>
 
-  <div class="db-empty" id="ads-empty" style="display:none;">
+  <div class="db-empty" id="ads-empty" style="display:<?= $rows ? 'none' : '' ?>;">
     <i class="bi bi-inboxes"></i>
     <h4>No ads match your filters</h4>
     <p>Try a different search term or status, or create a new ad to get started.</p>
@@ -61,8 +97,16 @@ ob_start();
   </div>
 
   <div class="db-pagination">
-    <span>Showing all matching results</span>
-    <div class="db-pagination__pages"><button class="db-page-btn active" type="button">1</button></div>
+    <span>Page <?= $page ?> of <?= $totalPages ?> (<?= number_format($totalAds) ?> total)</span>
+    <div class="db-pagination__pages">
+      <?php if ($page > 1): ?>
+        <a class="db-page-btn" href="?page=<?= $page - 1 ?>">Prev</a>
+      <?php endif; ?>
+      <button class="db-page-btn active" type="button"><?= $page ?></button>
+      <?php if ($page < $totalPages): ?>
+        <a class="db-page-btn" href="?page=<?= $page + 1 ?>">Next</a>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 <?php
@@ -70,15 +114,13 @@ $content = ob_get_clean();
 
 $pageScript = <<<'JS'
 document.addEventListener('DOMContentLoaded', function () {
-  SkoolystAdsUI.initTableFilters({
+  SkoolystAdsUI.filterRenderedRows({
     tbodyId: 'ads-table-body',
     emptyId: 'ads-empty',
     countId: 'results-count',
     searchId: 'filter-search',
     statusId: 'filter-status',
     appId: 'filter-app',
-    showAdvertiser: false,
-    showApprovalActions: false,
   });
 });
 JS;

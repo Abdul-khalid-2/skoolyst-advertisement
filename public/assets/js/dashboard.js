@@ -566,6 +566,55 @@
   }
   window.SkoolystAdsUI.initTableFilters = initTableFilters;
 
+  // ---------------------------------------------------------------------
+  // 10.g/10.h — DB-backed pages (my-ads.php, admin/ads.php) render real
+  // rows server-side and only get one page of results at a time, so
+  // initTableFilters/renderAdsTable above (which re-render from the full
+  // MOCK_ADS array) would silently replace them with fake data. This
+  // filters the rows already in the DOM instead — show/hide only, no
+  // re-render, so it works against whatever the server actually sent.
+  // Search/status/app filtering is therefore scoped to the current page
+  // of results, not the advertiser's/queue's full list; a "search across
+  // all pages" would need a real API call and is a future enhancement.
+  // ---------------------------------------------------------------------
+  function filterRenderedRows(opts) {
+    const tbody = document.getElementById(opts.tbodyId);
+    if (!tbody) return;
+    const emptyEl = opts.emptyId ? document.getElementById(opts.emptyId) : null;
+    const countEl = opts.countId ? document.getElementById(opts.countId) : null;
+    const searchEl = opts.searchId ? document.getElementById(opts.searchId) : null;
+    const statusEl = opts.statusId ? document.getElementById(opts.statusId) : null;
+    const appEl = opts.appId ? document.getElementById(opts.appId) : null;
+
+    function apply() {
+      const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      const status = statusEl ? statusEl.value : 'all';
+      const appName = appEl ? appEl.value : 'all';
+      let visible = 0;
+
+      $all('tr', tbody).forEach(function (tr) {
+        const matchesQuery = !query || tr.textContent.toLowerCase().indexOf(query) !== -1;
+        const matchesStatus = status === 'all' || tr.dataset.status === status;
+        const matchesApp = appName === 'all' || tr.dataset.app === appName;
+        const show = matchesQuery && matchesStatus && matchesApp;
+        tr.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+      if (countEl) countEl.textContent = visible + (visible === 1 ? ' result on this page' : ' results on this page');
+    }
+
+    [searchEl, statusEl, appEl].forEach(function (el) {
+      if (!el) return;
+      el.addEventListener('input', apply);
+      el.addEventListener('change', apply);
+    });
+
+    apply();
+  }
+  window.SkoolystAdsUI.filterRenderedRows = filterRenderedRows;
+
   // -----------------------------------------------------------------------
   // 11. Help tooltips — see views/components/help-icon.php.
   // One initializer turns every [data-bs-toggle="tooltip"] on the page

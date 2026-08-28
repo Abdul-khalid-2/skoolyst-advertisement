@@ -6,8 +6,10 @@
  * Merged into the main router at boot (see router boot code, 3.1.j).
  * `auth` marks whether the request pipeline (public/index.php) must
  * see a valid session or API key before dispatch. `{id}` in a path
- * is a placeholder — param extraction is wired up when the router
- * gains dynamic-segment matching.
+ * is a placeholder — the router matches it against any single path
+ * segment, but doesn't extract or bind its value anywhere; every
+ * handler that needs an id still reads it from the request body
+ * (e.g. Request::int('ad_id')).
  */
 
 use App\Ads\AdController;
