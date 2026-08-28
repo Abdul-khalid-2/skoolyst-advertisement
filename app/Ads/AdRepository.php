@@ -61,12 +61,12 @@ class AdRepository
 
     public function recordImpression(int $adId): void
     {
-        Database::query('INSERT INTO ad_impressions (ad_id, created_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
+        Database::query('INSERT INTO ad_impressions (ad_id, occurred_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
     }
 
     public function recordClick(int $adId): void
     {
-        Database::query('INSERT INTO ad_clicks (ad_id, created_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
+        Database::query('INSERT INTO ad_clicks (ad_id, occurred_at) VALUES (:ad_id, NOW())', ['ad_id' => $adId]);
     }
 
     /**
