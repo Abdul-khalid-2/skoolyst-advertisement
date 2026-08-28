@@ -99,7 +99,7 @@ if (($matched['auth'] ?? false) === true) {
 // CsrfMiddleware doc-block); it never has a session-rendered token.
 $submittedCsrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['_csrf'] ?? null);
 
-if (!CsrfMiddleware::passes($method, $submittedCsrf, $apiKey !== null)) {
+if (!CsrfMiddleware::passes($method, $submittedCsrf, $apiKey !== null, ($matched['auth'] ?? false) === true)) {
     http_response_code(419);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => ['message' => 'Invalid or missing CSRF token']]);

@@ -20,9 +20,18 @@ class CsrfMiddleware
      * Returns true if the request is exempt or the token is valid,
      * false if it should be rejected with a 419-style error.
      */
-    public static function passes(string $method, ?string $submittedToken, bool $hasApiKey): bool
+    public static function passes(string $method, ?string $submittedToken, bool $hasApiKey, bool $routeRequiresAuth): bool
     {
         if ($hasApiKey) {
+            return true;
+        }
+
+        // Public routes (`auth => false` — /ads/serve, /impression,
+        // /click) are called by connected apps' own client-side code,
+        // never a logged-in dashboard session, so there's no CSRF
+        // token to check in the first place. Only session-authenticated
+        // dashboard routes need this check.
+        if (!$routeRequiresAuth) {
             return true;
         }
 
