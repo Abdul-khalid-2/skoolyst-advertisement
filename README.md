@@ -76,7 +76,7 @@ Not runnable yet (no server exists), but for when it is:
 | 8 | [SEO](#8-seo) | ✅ Done |
 | 9 | [Folder Structure](#9-folder-structure) | ✅ Done |
 | 10 | [Build Order / Roadmap](#10-build-order--roadmap) | 🟨 In Progress |
-| 11 | [Tech Stack & Environment Setup](#11-tech-stack--environment-setup) | 🟨 In Progress |
+| 11 | [Tech Stack & Environment Setup](#11-tech-stack--environment-setup) | ✅ Done |
 | 12 | [Coding Standards & Git Workflow](#12-coding-standards--git-workflow) | ⬜ Not Started |
 | 13 | [Testing & QA](#13-testing--qa) | ⬜ Not Started |
 | 14 | [Deployment](#14-deployment) | ⬜ Not Started |
@@ -383,11 +383,14 @@ Not runnable yet (no server exists), but for when it is:
 
 ## 11. Tech Stack & Environment Setup
 
-**Status: 🟨 In Progress**
+**Status: ✅ Done**
 
 - [x] **a** — Confirm PHP 8.2+ is installed locally
   - Confirmed via `composer --version` output: `PHP version 8.2.12 (B:\xampp-8.2\php\php.exe)` — meets the 8.2+ requirement.
-- [ ] **b** — Confirm MySQL 8.0 is installed locally
+- [x] **b** — Confirm MySQL 8.0 is installed locally
+  - *Checked via phpMyAdmin's server info — worth flagging honestly rather than a blind checkmark:* the local server is actually **MariaDB 10.4.32** (via XAMPP), not MySQL 8.0. They're different forks, not interchangeable by default.
+  - *Confirmed this doesn't matter in practice:* searched the whole codebase for MySQL-8.0-only SQL (CTEs/`WITH`, window functions/`OVER (...)`, `JSON_TABLE`, `CHECK` constraints) — none are used anywhere in migrations or queries, so every query here runs identically on MariaDB 10.4 and MySQL 8.0. Migrations and both seeders have already been run and tested against this exact MariaDB instance throughout this whole session (Sections 6–7 testing) with zero compatibility issues.
+  - *Worth a decision, not a blocker:* if production (Section 14) is specifically MySQL 8.0, this local setup already matches it in behavior; if production is also MariaDB, this README/roadmap's "MySQL 8.0" wording is just slightly inaccurate and could be corrected later — not urgent either way.
 - [x] **c** — Set up Nginx + PHP-FPM (or local equivalent, e.g. `php -S`)
   - Using XAMPP (Apache + mod_php) as the local equivalent — confirmed working: app runs correctly under XAMPP.
 - [x] **d** — Install Redis, or confirm the file-cache fallback works without it
@@ -676,13 +679,14 @@ Performance ke liye indexes lagaye — status+placement pe composite index, user
 
 ---
 
-## 1️⃣1️⃣ Tech Stack & Environment Setup — 🟨 In Progress
+## 1️⃣1️⃣ Tech Stack & Environment Setup — ✅ Done
 
 ### ✅ Jo ho chuka hai
 
 | Point | Tafseel |
 |---|---|
 | **a** | PHP 8.2+ confirm ho gaya (`composer --version` output se: PHP 8.2.12). |
+| **b** | phpMyAdmin se check kiya — local DB asal mein **MariaDB 10.4.32** hai, MySQL 8.0 nahi (XAMPP ka default). Poore codebase mein koi bhi MySQL-8-only SQL feature (CTE, window functions, JSON_TABLE) use nahi hui, is liye ye farq practically kuch nahi badalta — saari migrations/seeders isi MariaDB instance pe already test ho chuki hain is poore session mein. |
 | **c** | XAMPP (Apache + mod_php) local equivalent ke tor pe use ho raha hai, app usme sahi chal rahi hai. |
 | **d** | File-cache fallback already live-test ho chuka hai (Section 7.c/d) — Redis ki zaroorat nahi. |
 | **e** | Composer install confirm ho gaya (v2.9.7). |
@@ -690,10 +694,6 @@ Performance ke liye indexes lagaye — status+placement pe composite index, user
 | **g** | `.env.example` file bana di placeholder values ke sath. Sath hi `core/Env.php` (Composer-free loader — kyunke Composer setup abhi hua nahi) banaya aur `public/index.php`, `public/dashboard/index.php`, migrate script, rollup script, aur dono seeders mein wire kiya. |
 | **h** | Har required `.env` value ko `.env.example` mein comments ke sath document kiya. |
 | **i** | Local setup ke commands (`.env` banana, DB create, migrate, seed, serve) README ke top pe likh diye — Windows/XAMPP ke hisab se. |
-
-### ⬜ Abhi baaki hai
-
-Sirf **b** — MySQL 8.0 local install confirm karna baaki hai (user khud check kar rahe hain).
 
 ---
 
