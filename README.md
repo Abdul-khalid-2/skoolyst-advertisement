@@ -8,6 +8,60 @@ This document is the build plan, broken into small, self-contained tasks so each
 
 ---
 
+## 🛠️ Quick Start — Local Setup & Command Reference
+
+Fulfils roadmap item 11.i. Written for the environment this project is actually developed on (**Windows + XAMPP**), with a note at the end on what's different once Section 14 (Deployment) stands up a real server.
+
+### One-time local setup
+
+1. **Copy the env file** — in the project root: `copy .env.example .env`, then edit `.env` with real local values (at minimum `DB_NAME`, `DB_USER`, `DB_PASS` to match step 2).
+
+2. **Create the database.** Either via phpMyAdmin (`http://localhost/phpmyadmin`), or from a `cmd` prompt using XAMPP's own MySQL client (usually `C:\xampp\mysql\bin\mysql.exe`):
+   ```
+   C:\xampp\mysql\bin\mysql.exe -u root
+   ```
+   then at the `mysql>` prompt:
+   ```sql
+   CREATE DATABASE skoolyst_ads CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+   If you're using XAMPP's default `root` user with no password (the common case), set `DB_USER=root` and leave `DB_PASS=` blank in `.env` — that's already `.env.example`'s default, so this step can be skipped if you're keeping those defaults.
+
+3. **Run migrations** (creates every table from Section 5; tracks what's already applied in a `migrations` table, so re-running is always safe):
+   ```
+   php database\scripts\migrate.php
+   ```
+
+4. **Seed the database** — two separate seeders, each run once:
+   ```
+   php database\seeders\DatabaseSeeder.php
+   php database\seeders\MockDataSeeder.php
+   ```
+   Both print seeded users' passwords and each connected app's API key **once**, to the terminal only — copy anything you need (to log in, or to call the API as an app) before it scrolls away, since only a hash is stored afterward.
+
+5. **Serve the app** — two options:
+   - **XAMPP/Apache (recommended — this is what actually respects `public/.htaccess`, so dashboard pages, static file serving, and the uploads non-executable-path protection all work correctly):** point a vhost's document root at this project's `public\` folder, or drop the whole project under `C:\xampp\htdocs\` and browse to `http://localhost/skoolyst-advertisement/public/`.
+   - **PHP's built-in server** (quick API-only testing, no Apache needed):
+     ```
+     php -S 127.0.0.1:8099 -t public public/index.php
+     ```
+     Caveat noted during the 10.m test pass: this only correctly serves the JSON API routes (`/api/v1/...`). It does **not** fall back to serving real files like `index.html` or the dashboard pages — `public/index.php`'s router only knows the API route table, so anything else 404s. Use Apache/XAMPP whenever you need to click through the actual UI.
+
+### Every time you pull new code
+
+- **New migration files?** Run `php database\scripts\migrate.php` again — only the new/pending ones apply.
+- **Nothing to re-seed normally.** Both seeders are idempotent — safe to re-run, but there's usually no need to.
+
+### What changes once this goes to production (Section 14 — not built yet)
+
+Not runnable yet (no server exists), but for when it is:
+- `deploy.sh` runs `composer install --no-dev --optimize-autoloader` — **currently broken** (10.m/7.f finding): no `composer.json` exists in this repo yet, so that step will fail until Section 11.e/f sets Composer up properly. Don't rely on `deploy.sh` as-is until that's done.
+- `config/opcache.ini`'s settings need to be dropped into the real server's php.ini/FPM pool config (not just committed to the repo) — `deploy.sh` already restarts PHP-FPM after every release so `opcache.validate_timestamps=0` is safe to use.
+- The cron entry documented in `cron/README.md` (`ad_stats_daily` rollup) needs to actually be registered on the host's crontab — can't happen until a host exists (10.k).
+- Real `.env` values on the server: different DB credentials, `APP_ENV=production`, `APP_DEBUG=false`.
+- Apache's `.htaccess` files (`public/.htaccess`, `public/uploads/ads/.htaccess`) already do the right thing for production as committed — non-executable uploads path, image cache headers, static files served directly — nothing to change there.
+
+---
+
 ## 📊 Progress Status
 
 | # | Section | Status |
@@ -340,7 +394,8 @@ This document is the build plan, broken into small, self-contained tasks so each
 - [x] **g** — Create `.env.example` with placeholder values
   - *Implemented via:* `.env.example`, plus `core/Env.php` (dependency-free loader, since 11.e/f's Composer setup hasn't happened yet) wired into `public/index.php`, `public/dashboard/index.php`, `database/scripts/migrate.php`, `database/scripts/rollup-ad-stats-daily.php`, and both seeders.
 - [x] **h** — Document each required `.env` value in `.env.example` comments
-- [ ] **i** — Write the local setup command list into `README.md`/`SETUP.md` (`composer install`, migrate, seed, serve)
+- [x] **i** — Write the local setup command list into `README.md`/`SETUP.md` (`composer install`, migrate, seed, serve)
+  - *Implemented via:* the [Quick Start — Local Setup & Command Reference](#-quick-start--local-setup--command-reference) section at the top of this file — written for the actual dev environment (Windows + XAMPP), covering `.env` setup, DB creation, migrate, seed, and serving via Apache/XAMPP or PHP's built-in server, plus a note on what's still missing for production (Composer setup, cron registration — see 10.m/10.k).
 
 ---
 
