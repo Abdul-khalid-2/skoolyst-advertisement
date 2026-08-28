@@ -1,5 +1,22 @@
 <?php
+require __DIR__ . '/../../core/Autoload.php';
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
+
+use App\Auth\UserRepository;
+use Core\Auth\Middleware;
+
+Core\Env::load(__DIR__ . '/../../.env');
+
+// Same role check as admin/ads.php — a plain session check isn't
+// enough here (an advertiser session would still pass it), so the
+// user's role is checked directly.
+$userId = Middleware::checkSession();
+$currentUser = $userId !== null ? (new UserRepository())->findById($userId) : null;
+if ($currentUser === null || !$currentUser->isAdmin()) {
+    header('Location: ../index.html');
+    exit;
+}
 
 $pageTitle  = 'Admin Overview';
 $role       = 'admin';

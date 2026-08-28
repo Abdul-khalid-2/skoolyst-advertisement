@@ -1,10 +1,22 @@
 <?php
+require __DIR__ . '/../../core/Autoload.php';
 require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
 require __DIR__ . '/../../core/Database.php';
 require __DIR__ . '/../../app/Ads/AdStatsRepository.php';
 
+use Core\Auth\Middleware;
+
 Core\Env::load(__DIR__ . '/../../.env');
+
+// Same session check as my-ads.php — this page shows the logged-in
+// advertiser's own stats, so a visitor with no session is sent to the
+// marketing page rather than shown a fatal error or someone else's data.
+$userId = Middleware::checkSession();
+if ($userId === null) {
+    header('Location: ../index.html');
+    exit;
+}
 
 $pageTitle  = 'Dashboard';
 $role       = 'advertiser';

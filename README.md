@@ -462,6 +462,16 @@ Not runnable yet (no server exists), but for when it is:
 
 ---
 
+## Bug Fixes (Manual QA)
+
+Real bugs found through manual click-through testing (not part of the Section 10 checklist pass, but worth a record) — each verified live before/after, not just read in code.
+
+- **Missing login checks on `dashboard/index.php`, `dashboard/create-ad.php`, `admin/index.php`** — only `my-ads.php`, `admin/ads.php`, and `admin/apps.php` had a real session/role check; these three still had a stale "until Section 6 wires up real auth" comment even though Section 6 was finished long ago, and were reachable by anyone with no session. **Fixed:** added the same `Middleware::checkSession()` redirect used by `my-ads.php` to the two advertiser pages, and the same session+role check used by `admin/ads.php` to `admin/index.php`. Verified live with real HTTP requests: no session → 302 redirect on all three; a real advertiser session → 200 on the two advertiser pages but still 302 on the admin page (wrong role); a real admin session → 200 on the admin page.
+- **`create-ad.php`'s multi-step form: "Next" button did nothing** — the page's inline script declared `let currentImageSrc = ...` *after* `wireCount('f-title', ...)` was already calling `updatePreview()` (which reads `currentImageSrc`) as part of its own setup. Reading a `let` variable before its declaration line runs is a JavaScript temporal-dead-zone error (`Cannot access 'currentImageSrc' before initialization`) — uncaught, so it silently halted the rest of the script, including all the step-navigation code and the `Next`/`Back` button listeners further down. Confirmed live with a real headless-browser run (Playwright): the console showed exactly that error, and clicking Next produced no visible change. **Fixed:** moved the `currentImageSrc` declaration above the `wireCount()` calls. Re-ran the same browser test — no console errors, and step 1 correctly hides while step 2 shows after clicking Next.
+- **Same file, separate bug — editing an existing ad would have crashed:** `editingAd = editId ? SkoolystAdsMock.ads.find(...) : null` referenced `SkoolystAdsMock`, but `views/partials/scripts.php` actually exposes the mock data as `window.SkoolystAdsMockData`. Only triggers when `?edit=...` is in the URL (the ternary short-circuits otherwise), so it didn't affect plain ad creation, but would throw immediately on the edit page. **Fixed:** corrected the variable name. Verified live: loading `create-ad.php?edit=ad_1001` now pre-fills the form from the mock ad with zero console errors, instead of crashing.
+
+---
+
 ## 15. Future Enhancements
 
 **Status: ⬜ Not Started** *(deferred, not blocking)*

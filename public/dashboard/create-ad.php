@@ -1,6 +1,20 @@
 <?php
 require __DIR__ . '/../../core/Autoload.php';
+require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
+
+use Core\Auth\Middleware;
+
+Core\Env::load(__DIR__ . '/../../.env');
+
+// Same session check as my-ads.php — an advertiser must be logged in
+// to create an ad (the form posts to an authenticated API endpoint
+// anyway, but the page itself was reachable by anyone until now).
+$userId = Middleware::checkSession();
+if ($userId === null) {
+    header('Location: ../index.html');
+    exit;
+}
 
 $pageTitle  = 'Create Ad';
 $role       = 'advertiser';
@@ -172,7 +186,15 @@ $pageScript = <<<JS
 
   const params = new URLSearchParams(window.location.search);
   const editId = params.get('edit');
-  const editingAd = editId ? SkoolystAdsMock.ads.find(function (a) { return a.id === editId; }) : null;
+  const editingAd = editId ? SkoolystAdsMockData.ads.find(function (a) { return a.id === editId; }) : null;
+
+  // Declared here (not next to fileInput/fileDrop below, where it used to
+  // live) because wireCount() below calls updatePreview() immediately,
+  // and updatePreview() reads this — a `let` read before its declaration
+  // line runs throws "Cannot access before initialization" and silently
+  // aborts the rest of this script, including all step-navigation wiring
+  // further down. That's why "Next" previously did nothing at all.
+  let currentImageSrc = editingAd ? editingAd.image : '../assets/img/ad-1.svg';
 
   if (editingAd) {
     document.getElementById('page-title').textContent = 'Edit Ad';
@@ -267,7 +289,6 @@ $pageScript = <<<JS
 
   const fileInput = document.getElementById('f-image');
   const fileDrop = document.getElementById('file-drop');
-  let currentImageSrc = editingAd ? editingAd.image : '../assets/img/ad-1.svg';
 
   fileInput.addEventListener('change', function () {
     const file = fileInput.files && fileInput.files[0];
