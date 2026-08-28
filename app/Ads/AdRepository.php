@@ -77,11 +77,16 @@ class AdRepository
      * in views/components/ads-table.php, 10.h) — an admin reviewing
      * the queue needs to know who submitted each ad, an advertiser
      * viewing their own list already does.
+     *
+     * $status === null drops the WHERE clause entirely — backs
+     * admin/ads.php's "All" tab, which countsByStatus()'s own `all`
+     * key already counts but has no single status value of its own.
      */
-    public function findByStatus(string $status, int $page = 1, int $perPage = 20): array
+    public function findByStatus(?string $status, int $page = 1, int $perPage = 20): array
     {
         $perPage = max(1, min($perPage, 100));
         $offset = max(0, ($page - 1) * $perPage);
+        $where = $status === null ? '' : 'WHERE ads.status = :status';
 
         return Database::query(
             <<<SQL
@@ -102,11 +107,11 @@ class AdRepository
                     FROM ad_stats_daily
                     GROUP BY ad_id
                 ) stats ON stats.ad_id = ads.id
-                WHERE ads.status = :status
+                {$where}
                 ORDER BY ads.created_at ASC
                 LIMIT {$perPage} OFFSET {$offset}
             SQL,
-            ['status' => $status]
+            $status === null ? [] : ['status' => $status]
         )->fetchAll();
     }
 
