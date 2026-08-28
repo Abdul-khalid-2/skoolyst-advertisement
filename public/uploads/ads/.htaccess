@@ -25,3 +25,18 @@
 
 # No directory listing, no executing anything as CGI.
 Options -Indexes -ExecCGI
+
+# 7.i — far-future cache headers. This is the path that actually serves
+# these images in production (this folder is served directly, not
+# rewritten to index.php — see public/.htaccess); ImageController.php
+# sets the same header, but that PHP route never really runs (10.j: the
+# router doesn't bind {filename}, so it 500s on every request), so
+# without this directive real image responses were sending no
+# Cache-Control at all. Filenames are randomized on upload
+# (core/Uploads.php, 6.q), so a changed image is always a new filename,
+# never a stale cache of the old one.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
