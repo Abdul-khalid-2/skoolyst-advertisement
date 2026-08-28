@@ -23,11 +23,17 @@ class Request
         if (stripos($contentType, 'application/json') !== false) {
             $raw = file_get_contents('php://input');
             $decoded = json_decode($raw, true);
-
-            return is_array($decoded) ? $decoded : [];
+            $body = is_array($decoded) ? $decoded : [];
+        } else {
+            $body = $_POST;
         }
 
-        return $_POST;
+        // $_GET is merged as a lower-priority fallback so query-string
+        // params work on GET routes (e.g. `GET /ads/serve?placement=`,
+        // documented in public/api-docs.php — 10.j) without changing
+        // behavior for POST/JSON routes, where body values still win
+        // on any key collision.
+        return array_merge($_GET, $body);
     }
 
     /**
