@@ -146,12 +146,21 @@ class AdRepository
      */
     public function updateStatus(int $adId, string $status, ?string $rejectionReason = null): bool
     {
-        $statement = Database::query(
+        // Existence checked separately, not via rowCount() — MySQL
+        // reports rows actually changed, not rows matched (no
+        // CLIENT_FOUND_ROWS flag here), so re-approving an already-
+        // active ad would otherwise read as "not found" and 404 even
+        // though the row exists (same fix as AppRepository::updateStatus()).
+        if (Database::fetchOne('SELECT id FROM ads WHERE id = :id', ['id' => $adId]) === null) {
+            return false;
+        }
+
+        Database::query(
             'UPDATE ads SET status = :status, rejection_reason = :rejection_reason WHERE id = :id',
             ['id' => $adId, 'status' => $status, 'rejection_reason' => $rejectionReason]
         );
 
-        return $statement->rowCount() > 0;
+        return true;
     }
 
     /**

@@ -33,7 +33,7 @@ class AppController
             return;
         }
 
-        Response::success(['apps' => $this->apps->all()]);
+        Response::success(['apps' => $this->apps->allWithCounts()]);
     }
 
     /**
@@ -82,15 +82,31 @@ class AppController
 
     /**
      * PATCH /api/v1/admin/apps/{id}
-     * Empty handler — status/name/domain update added once the route
-     * gains dynamic-segment matching (3.1 note in app/Ads/routes.php
-     * applies here too).
+     * Only `status` (active/paused) is supported — the connect-switch
+     * on admin/apps.php (10.i). Name/domain editing isn't part of that
+     * page's UI yet, so isn't validated/handled here.
      */
     public function update(): void
     {
-        if (Middleware::requireRole(['admin']) === null) {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
             return;
         }
+
+        $appId = Request::int('app_id');
+        $status = Request::string('status');
+
+        if ($appId === null || !in_array($status, ['active', 'paused'], true)) {
+            Response::error(['code' => 'validation_error', 'message' => 'app_id and a valid status (active or paused) are required.']);
+            return;
+        }
+
+        if (!$this->apps->updateStatus($appId, $status)) {
+            Response::error(['code' => 'not_found', 'message' => 'App not found.'], 404);
+            return;
+        }
+
+        AuditLog::write($adminId, $status === 'active' ? 'app.activate' : 'app.pause', 'app', $appId);
 
         Response::success([]);
     }

@@ -21,6 +21,41 @@ class AppRepository
     }
 
     /**
+     * Same as all(), plus each app's placement count and total ad
+     * count — what admin/apps.php's connected-apps grid shows (10.i)
+     * instead of data/mock-data.php's hardcoded numbers. Ad count is
+     * every ad regardless of status, matching the mock UI's own
+     * `ads.filter(a => a.app === app.id).length`.
+     */
+    public function allWithCounts(): array
+    {
+        $apps = Database::query(
+            <<<SQL
+                SELECT
+                    apps.id, apps.name, apps.code, apps.domain, apps.status, apps.created_at,
+                    COALESCE(placement_counts.total, 0) AS placements_count,
+                    COALESCE(ad_counts.total, 0) AS ads_count
+                FROM apps
+                LEFT JOIN (
+                    SELECT app_id, COUNT(*) AS total FROM placements GROUP BY app_id
+                ) placement_counts ON placement_counts.app_id = apps.id
+                LEFT JOIN (
+                    SELECT app_id, COUNT(*) AS total FROM ads GROUP BY app_id
+                ) ad_counts ON ad_counts.app_id = apps.id
+                ORDER BY apps.created_at DESC
+            SQL
+        )->fetchAll();
+
+        foreach ($apps as &$app) {
+            $app['placements_count'] = (int) $app['placements_count'];
+            $app['ads_count'] = (int) $app['ads_count'];
+        }
+        unset($app);
+
+        return $apps;
+    }
+
+    /**
      * Every active app plus its own placements, nested — what the
      * advertiser-facing "new ad" form (create-ad.php, 10.f) needs to
      * populate its app/placement pickers with real ids instead of
@@ -95,6 +130,31 @@ class AppRepository
         Database::query('UPDATE apps SET api_key_hash = :hash WHERE id = :app_id', ['hash' => $keyHash, 'app_id' => $appId]);
 
         return $apiKey;
+    }
+
+    /**
+     * Toggles an app between active/paused (10.i, admin/apps.php's
+     * connect-switch) — kept generic here; the audit-log write for
+     * which direction happened lives in AppController::update(), the
+     * same split as AdRepository::updateStatus()/ModerationController.
+     */
+    public function updateStatus(int $appId, string $status): bool
+    {
+        // rowCount() on an UPDATE reports rows actually changed, not
+        // rows matched (MySQL's default, no CLIENT_FOUND_ROWS flag) —
+        // toggling to a status the app is already in would otherwise
+        // read as "not found" and 404 even though the app exists.
+        // Existence is confirmed separately instead.
+        if (Database::fetchOne('SELECT id FROM apps WHERE id = :id', ['id' => $appId]) === null) {
+            return false;
+        }
+
+        Database::query(
+            'UPDATE apps SET status = :status WHERE id = :id',
+            ['id' => $appId, 'status' => $status]
+        );
+
+        return true;
     }
 
     /**
