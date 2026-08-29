@@ -120,6 +120,18 @@ class Middleware
             return;
         }
 
+        // A distinct session cookie name — not PHP's PHPSESSID default —
+        // so this project never shares a session with another PHP app
+        // running on the same host/domain (e.g. another project also
+        // served from localhost under XAMPP). Without this, two apps
+        // both using the default name and the site-wide path='/' below
+        // literally share one session file: logging into one silently
+        // overwrites $_SESSION['user_id'] for the other, which then
+        // reads back a user id that's wrong or doesn't exist in this
+        // app's own `users` table — surfacing as an unexplained 403
+        // from requireRole() rather than an obvious login failure.
+        session_name('skoolyst_ads_session');
+
         // Secure cookies are dropped outright by browsers over plain
         // HTTP — fine in staging/production (always HTTPS), but it
         // would silently break every session-based login on local

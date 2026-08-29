@@ -31,7 +31,7 @@ class LoginEndpointTest extends HttpServerTestCase
 
         $sessionCookie = null;
         foreach ($response['response_headers'] as $header) {
-            if (stripos($header, 'Set-Cookie:') === 0 && str_contains($header, 'PHPSESSID')) {
+            if (stripos($header, 'Set-Cookie:') === 0 && str_contains($header, 'skoolyst_ads_session')) {
                 $sessionCookie = $header;
             }
         }
