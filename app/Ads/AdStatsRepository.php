@@ -96,4 +96,72 @@ class AdStatsRepository
             $rows
         );
     }
+
+    /**
+     * Same as dailyImpressions() but scoped to one advertiser's own
+     * ads — backs the advertiser dashboard's "Impressions, Last N
+     * Days" chart (10.m), which must never include other advertisers'
+     * traffic. Still reads `ad_stats_daily` only, joined to `ads` just
+     * to filter by `user_id` (same join shape AdRepository's own
+     * queries already use).
+     *
+     * @return list<array{date: string, impressions: int}>
+     */
+    public function dailyImpressionsForUser(int $userId, int $days = 7): array
+    {
+        $rows = Database::query(
+            <<<SQL
+                SELECT ad_stats_daily.date, SUM(ad_stats_daily.impressions) AS impressions
+                FROM ad_stats_daily
+                INNER JOIN ads ON ads.id = ad_stats_daily.ad_id
+                WHERE ads.user_id = :user_id
+                  AND ad_stats_daily.date >= (CURDATE() - INTERVAL :days DAY)
+                GROUP BY ad_stats_daily.date
+                ORDER BY ad_stats_daily.date ASC
+            SQL,
+            ['user_id' => $userId, 'days' => $days]
+        )->fetchAll();
+
+        return array_map(
+            static fn (array $row): array => [
+                'date' => $row['date'],
+                'impressions' => (int) $row['impressions'],
+            ],
+            $rows
+        );
+    }
+
+    /**
+     * One-query summary behind the dashboard's "Impressions (30d)",
+     * "Clicks (30d)" and "Avg. CTR" stat cards, plus each card's
+     * "vs last month" trend (10.m) — the current 30-day window against
+     * the 30 days immediately before it, for one advertiser's ads
+     * only. A single conditional-SUM query rather than two separate
+     * round trips for the two windows.
+     *
+     * @return array{impressions_current: int, clicks_current: int, impressions_previous: int, clicks_previous: int}
+     */
+    public function performanceSummaryForUser(int $userId): array
+    {
+        $row = Database::fetchOne(
+            <<<SQL
+                SELECT
+                    COALESCE(SUM(CASE WHEN date >= CURDATE() - INTERVAL 30 DAY THEN impressions ELSE 0 END), 0) AS impressions_current,
+                    COALESCE(SUM(CASE WHEN date >= CURDATE() - INTERVAL 30 DAY THEN clicks ELSE 0 END), 0) AS clicks_current,
+                    COALESCE(SUM(CASE WHEN date < CURDATE() - INTERVAL 30 DAY AND date >= CURDATE() - INTERVAL 60 DAY THEN impressions ELSE 0 END), 0) AS impressions_previous,
+                    COALESCE(SUM(CASE WHEN date < CURDATE() - INTERVAL 30 DAY AND date >= CURDATE() - INTERVAL 60 DAY THEN clicks ELSE 0 END), 0) AS clicks_previous
+                FROM ad_stats_daily
+                INNER JOIN ads ON ads.id = ad_stats_daily.ad_id
+                WHERE ads.user_id = :user_id
+            SQL,
+            ['user_id' => $userId]
+        );
+
+        return [
+            'impressions_current' => (int) ($row['impressions_current'] ?? 0),
+            'clicks_current' => (int) ($row['clicks_current'] ?? 0),
+            'impressions_previous' => (int) ($row['impressions_previous'] ?? 0),
+            'clicks_previous' => (int) ($row['clicks_previous'] ?? 0),
+        ];
+    }
 }

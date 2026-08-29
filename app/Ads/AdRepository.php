@@ -243,6 +243,32 @@ class AdRepository
     }
 
     /**
+     * Counts every status for one advertiser's own ads — same shape as
+     * countsByStatus() (which is global, for the admin queue) but
+     * scoped to `user_id`. Backs the advertiser dashboard's "Active
+     * Ads" stat card and its "N pending review" sub-label (10.m).
+     * Always returns every known status, zero-filled.
+     *
+     * @return array<string, int>
+     */
+    public function countsByStatusForUser(int $userId): array
+    {
+        $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
+
+        $rows = Database::query(
+            'SELECT status, COUNT(*) AS total FROM ads WHERE user_id = :user_id GROUP BY status',
+            ['user_id' => $userId]
+        )->fetchAll();
+
+        foreach ($rows as $row) {
+            $counts[$row['status']] = (int) $row['total'];
+            $counts['all'] += (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * @param array<string, mixed> $data Validated fields from AdValidator.
      */
     public function create(int $userId, array $data): array

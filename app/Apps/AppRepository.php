@@ -56,6 +56,38 @@ class AppRepository
     }
 
     /**
+     * One advertiser's own ad count per app — backs the dashboard's
+     * "By App" widget (10.m), which previously showed
+     * data/mock-data.php's hardcoded `sk`/`st`/`ss` counts regardless
+     * of who was logged in. INNER JOIN means an app the advertiser has
+     * never placed an ad on simply doesn't appear, matching the
+     * widget's own "where your ads are running" framing rather than
+     * listing every connected app with a zero next to it.
+     *
+     * @return array<int, array{id: int, name: string, code: string, total: int}>
+     */
+    public function adsCountByAppForUser(int $userId): array
+    {
+        $rows = Database::query(
+            <<<SQL
+                SELECT apps.id, apps.name, apps.code, COUNT(ads.id) AS total
+                FROM apps
+                INNER JOIN ads ON ads.app_id = apps.id AND ads.user_id = :user_id
+                GROUP BY apps.id, apps.name, apps.code
+                ORDER BY total DESC
+            SQL,
+            ['user_id' => $userId]
+        )->fetchAll();
+
+        foreach ($rows as &$row) {
+            $row['total'] = (int) $row['total'];
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
      * Every active app plus its own placements, nested — what the
      * advertiser-facing "new ad" form (create-ad.php, 10.f) needs to
      * populate its app/placement pickers with real ids instead of
