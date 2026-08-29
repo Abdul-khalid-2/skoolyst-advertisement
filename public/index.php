@@ -76,7 +76,21 @@ foreach ($routes as $route) {
 if ($matched === null) {
     http_response_code(404);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => ['message' => 'Not found']]);
+    $body = ['success' => false, 'error' => ['message' => 'Not found']];
+    // Temporary: surface exactly what the subdirectory-stripping logic
+    // above saw, so a 404 that "should" match can actually be diagnosed
+    // instead of guessed at. Debug-mode only (APP_DEBUG=true, the local
+    // default) — never reaches a real deploy where APP_DEBUG=false.
+    if ((require __DIR__ . '/../config/app.php')['debug']) {
+        $body['debug'] = [
+            'method' => $method,
+            'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
+            'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
+            'computed_scriptDir' => $scriptDir,
+            'computed_path' => $path,
+        ];
+    }
+    echo json_encode($body);
     return;
 }
 
