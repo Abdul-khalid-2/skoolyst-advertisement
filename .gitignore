@@ -3,4 +3,7 @@
 /public/uploads/ads/*
 !/public/uploads/ads/.htaccess
 .env
+.env.testing
 vendor/
+.phpunit.cache/
+.phpunit.result.cache

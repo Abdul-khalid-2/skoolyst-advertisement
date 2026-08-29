@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    PHPUnit config (Section 13.b).
+
+    bootstrap.php loads .env.testing (never .env — tests must never
+    touch the local dev database) and wires up the same
+    core/Autoload.php the app itself uses, plus a small Tests\
+    autoloader for this folder.
+
+    No <coverage> block: nothing here depends on Xdebug/pcov being
+    installed, so `phpunit` runs the same way on a bare PHP install
+    as it does with coverage tooling added later.
+-->
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    failOnWarning="true"
+    failOnDeprecation="false"
+>
+    <testsuites>
+        <testsuite name="Ads">
+            <directory>tests/Ads</directory>
+        </testsuite>
+        <testsuite name="Auth">
+            <directory>tests/Auth</directory>
+        </testsuite>
+        <testsuite name="Core">
+            <directory>tests/Core</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>app</directory>
+            <directory>core</directory>
+        </include>
+    </source>
+</phpunit>
