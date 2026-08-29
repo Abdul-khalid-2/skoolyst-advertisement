@@ -57,8 +57,16 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 // carries that whole prefix too. Strip it — based on where this
 // script actually lives (SCRIPT_NAME), not a hardcoded guess — so the
 // same route table matches in both setups without editing every path.
+// Compared case-insensitively on purpose: on Windows, Apache resolves
+// SCRIPT_NAME using the filesystem's actual folder casing (e.g.
+// "/Projects/..."), which can differ from whatever case the browser's
+// URL happened to use (e.g. "/projects/..." if that's what was typed
+// or linked). A case-sensitive check here silently failed to strip
+// the prefix in that situation, leaving the full path unmatched
+// against every route and turning every request into a 404 — found
+// via a real request on a live XAMPP/Windows setup, not a guess.
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
-if ($scriptDir !== '' && $scriptDir !== '/' && str_starts_with($path, $scriptDir)) {
+if ($scriptDir !== '' && $scriptDir !== '/' && stripos($path, $scriptDir) === 0) {
     $path = substr($path, strlen($scriptDir)) ?: '/';
 }
 
@@ -76,21 +84,7 @@ foreach ($routes as $route) {
 if ($matched === null) {
     http_response_code(404);
     header('Content-Type: application/json');
-    $body = ['success' => false, 'error' => ['message' => 'Not found']];
-    // Temporary: surface exactly what the subdirectory-stripping logic
-    // above saw, so a 404 that "should" match can actually be diagnosed
-    // instead of guessed at. Debug-mode only (APP_DEBUG=true, the local
-    // default) — never reaches a real deploy where APP_DEBUG=false.
-    if ((require __DIR__ . '/../config/app.php')['debug']) {
-        $body['debug'] = [
-            'method' => $method,
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
-            'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
-            'computed_scriptDir' => $scriptDir,
-            'computed_path' => $path,
-        ];
-    }
-    echo json_encode($body);
+    echo json_encode(['success' => false, 'error' => ['message' => 'Not found']]);
     return;
 }
 
