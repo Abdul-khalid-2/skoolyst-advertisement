@@ -51,6 +51,30 @@ Fulfils roadmap item 11.i. Written for the environment this project is actually 
 - **New migration files?** Run `php database\scripts\migrate.php` again — only the new/pending ones apply.
 - **Nothing to re-seed normally.** Both seeders are idempotent — safe to re-run, but there's usually no need to.
 
+### Running Tests
+
+Fulfils Section 13. All 16 tests are live tests against a real disposable database and (for the two endpoint tests) a real HTTP server — nothing here is mocked.
+
+1. **Copy the test env file** — `copy .env.testing.example .env.testing`, then edit `DB_NAME` etc. if needed. This is deliberately a *separate* file from `.env` — tests never touch your local dev database.
+2. **Create the disposable test database** (same pattern as the dev DB in step 2 above, different name):
+   ```sql
+   CREATE DATABASE skoolyst_ads_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+3. **Build its schema fresh** (not `migrate.php` — that one tracks already-applied migrations, which a disposable DB has no history of between resets):
+   ```
+   php database\scripts\reset-test-db.php
+   ```
+   Safe to re-run any time you want a completely clean slate — drops every table and recreates them from the migration files.
+4. **One-time: pull in PHPUnit.** `composer.json` declares `phpunit/phpunit` as a dev dependency, but `composer.lock` needs regenerating once after that addition:
+   ```
+   composer update phpunit/phpunit --dev
+   ```
+5. **Run the suite:**
+   ```
+   vendor\bin\phpunit
+   ```
+   `tests/Auth/LoginEndpointTest.php` and `tests/Ads/AdsServeContractTest.php` automatically spin up their own `php -S` instance on port `8098` (configurable via `TEST_HTTP_PORT` in `.env.testing`) for the duration of the run — no separate server needs to be running first, and it's a different port from the `8099` used for manual local testing so the two never collide.
+
 ### What changes once this goes to production (Section 14 — not built yet)
 
 Not runnable yet (no server exists), but for when it is:
@@ -78,7 +102,7 @@ Not runnable yet (no server exists), but for when it is:
 | 10 | [Build Order / Roadmap](#10-build-order--roadmap) | 🟨 In Progress |
 | 11 | [Tech Stack & Environment Setup](#11-tech-stack--environment-setup) | ✅ Done |
 | 12 | [Coding Standards & Git Workflow](#12-coding-standards--git-workflow) | ✅ Done |
-| 13 | [Testing & QA](#13-testing--qa) | ⬜ Not Started |
+| 13 | [Testing & QA](#13-testing--qa) | ✅ Done |
 | 14 | [Deployment](#14-deployment) | ⬜ Not Started |
 | 15 | [Future Enhancements](#15-future-enhancements) | ⬜ Not Started *(deferred, not blocking)* |
 
@@ -430,20 +454,72 @@ All nine written into [`CONTRIBUTING.md`](CONTRIBUTING.md), each grounded in som
 
 ## 13. Testing & QA
 
-**Status: ⬜ Not Started**
+**Status: ✅ Done**
 
-- [ ] **a** — Install PHPUnit via Composer
-- [ ] **b** — Add PHPUnit config file (`phpunit.xml`)
-- [ ] **c** — Write one unit test for a validator rule
-- [ ] **d** — Write one unit test for a repository query-building method
-- [ ] **e** — Write one unit test for the stats rollup calculation
-- [ ] **f** — Write one integration test for a single endpoint (auth → controller → DB → response shape)
-- [ ] **g** — Set up a disposable/seeded test database
-- [ ] **h** — Write one API contract test matching an `api-docs.php` example
-- [ ] **i** — Write a manual cross-browser QA checklist (doc only)
-- [ ] **j** — Write a manual mobile-device QA checklist (doc only)
-- [ ] **k** — Write a manual SQLi/XSS/auth-bypass check checklist (doc only)
-- [ ] **l** — Add the "no endpoint merges without an integration test" rule to `CONTRIBUTING.md`
+- [x] **a** — Install PHPUnit via Composer
+  - *Added to `composer.json`* as `require-dev: phpunit/phpunit ^11.0` (the latest major supporting this project's `php >=8.2` requirement), plus `autoload-dev: Tests\ → tests/`.
+  - *Honest caveat about how this was actually verified:* this session's sandbox can reach `github.com` but not `packagist.org`/`repo.packagist.org`, so a real `composer require`/`composer install` for `phpunit/phpunit` isn't possible from here — confirmed with `composer validate`, which correctly reports `composer.lock` as out of date and `phpunit/phpunit` missing from it. On a machine with normal internet access (i.e. yours), `composer update phpunit/phpunit --dev` (documented in the new "Running Tests" step 4 above) will resolve and lock it normally — that one-time step still needs to be run for real once, since it couldn't be done here. To actually live-test everything below in the meantime, this session installed PHP 8.3/MariaDB/Composer via `apt` (all on the allowed network list) and used the Debian-packaged `phpunit` 9.6.17 as a stand-in test runner — same test files, same assertions either way; only the runner differs, and PHPUnit's basic `TestCase`/assertion API this project's tests use is unchanged between 9.6 and 11.x.
+- [x] **b** — Add PHPUnit config file (`phpunit.xml`)
+  - `phpunit.xml` written for PHPUnit 11's schema (`<source><include>`, `failOnDeprecation`) since that's what `composer.json` actually declares. Running it under the sandbox's PHPUnit 9.6 stand-in prints two harmless schema-validation warnings for those 11-only bits (confirmed by reading the warning text — it names exactly `failOnDeprecation` and `<source>`) but still runs and reports results correctly; a real PHPUnit 11 run (via `vendor/bin/phpunit` once 13.a's one-time step is done) won't show these at all.
+- [x] **c** — Write one unit test for a validator rule
+  - `tests/Core/ValidatorTest.php` — actually five tests, one per `core/Validator.php` method (`required`, `maxLength`, `url`, `date`), including edge cases like a rejected `2026-02-30` (real calendar validity, not just format shape) and multi-byte `maxLength`. Pure logic, no database. **Live-verified: 5/5 pass, 18 assertions.**
+- [x] **d** — Write one unit test for a repository query-building method
+  - `tests/Ads/AdRepositoryTest.php` targets `AdRepository::findByStatus()` — the conditional WHERE clause (10.h's "All tab accepts `null` status" behavior) and its LIMIT/OFFSET pagination, seeded against the real disposable test DB (this project's own rule is no mocking, so "unit" here means one repository method in isolation, not zero database).
+  - *Found and fixed a real bug, not just a passing test:* seeding 25 ads in one test (to exercise pagination past one page) exposed that `ORDER BY ads.created_at ASC` alone is non-deterministic for rows sharing the same second — `created_at` is only second-precision, so 25 ads inserted in the same test run all land on one identical timestamp, and MySQL doesn't guarantee stable tie-breaking for `LIMIT`/`OFFSET` across separate calls with no secondary sort key. The no-overlap pagination test failed intermittently (passed alone, failed when run alongside the rest of the suite) — a real, if narrow, production risk any time several ads are created within the same second (bulk import, a seeder, or just two advertisers submitting at once). **Fixed** by adding `ads.id` as an explicit tiebreaker to both `findByStatus()` (`ORDER BY ads.created_at ASC, ads.id ASC`) and `findAllForUser()` (`ORDER BY ads.created_at DESC, ads.id DESC`, same risk, same fix) — confirmed via 3 repeat full-suite runs afterward, all clean.
+  - **Live-verified: 3/3 pass, 7 assertions**, including the pagination one that originally caught the bug above.
+- [x] **e** — Write one unit test for the stats rollup calculation
+  - `tests/Ads/AdStatsRepositoryTest.php` automates exactly what 10.k's manual test already did by hand (5 impressions + 2 clicks on one ad, 1 impression on another, for one date) plus a same-date re-run check for the upsert's idempotency, plus confirming an event on an adjacent day never bleeds into the rollup. **Live-verified: 2/2 pass, 6 assertions**, both against real MariaDB.
+- [x] **f** — Write one integration test for a single endpoint (auth → controller → DB → response shape)
+  - `tests/Auth/LoginEndpointTest.php` — a real HTTP `POST /api/v1/auth/login` through `public/index.php`'s actual router → auth flow → `UserRepository`/`password_verify()` → real response, via `tests/Support/HttpServerTestCase.php` (spins up `php -S`, wired to the test DB through explicit process environment variables rather than `.env`, so it can never touch the dev database). Covers success (checks the response body *and* that a real `HttpOnly` session cookie is actually set), wrong password, and unknown email (same generic error for both, confirming the anti-enumeration behavior from 6.b still holds under a real request). **Live-verified: 3/3 pass, 13 assertions.**
+- [x] **g** — Set up a disposable/seeded test database
+  - `.env.testing.example` (template, same style as `.env.example`) + `database/scripts/reset-test-db.php`, a standalone script (kept separate from `migrate.php` on purpose — this one is destructive by design) that drops every table and recreates them fresh from the migration files. `tests/bootstrap.php` loads `.env.testing` only, never `.env`, and refuses to run at all unless `DB_NAME` contains the substring `test` — a safety net against ever truncating a real database by a typo'd config, live-verified by both intentionally renaming `.env.testing` away (correctly refuses with a clear message) and intentionally pointing `DB_NAME` at a non-test name (correctly refuses too). `tests/Support/DatabaseTestCase.php` truncates every table before each test (not once per class) and provides seed helpers that call real repository methods (`AppRepository::createWithApiKey()`, `UserRepository::create()`) rather than raw inserts, per this project's own "repository methods, not raw queries" convention (`MockDataSeeder.php`'s same rule).
+  - *Found and fixed a real bug in this new script itself, not the app:* `reset-test-db.php`'s first version read `SHOW TABLES` with a plain `fetchAll()`, silently returning nothing to drop — `Core\Database::connection()` sets `PDO::ATTR_DEFAULT_FETCH_MODE` to `FETCH_ASSOC` connection-wide, so each row came back keyed by its column name (`Tables_in_skoolyst_ads_test`), not index `0`, and `array_column($tables, 0)` on that returned nothing. The DROP loop silently did nothing, and the very next run's `CREATE TABLE` failed with "table already exists" — caught immediately on the second live run, not left undiscovered. **Fixed** by fetching with `PDO::FETCH_COLUMN` explicitly. **Live-verified:** ran the reset script twice in a row afterward with no error either time, confirming it's genuinely safe to re-run.
+- [x] **h** — Write one API contract test matching an `api-docs.php` example
+  - `tests/Ads/AdsServeContractTest.php` — seeds an ad with the exact same field values as `api-docs.php`'s "Serve an Ad" documented example (`Speak Confidently in 8 Weeks`, `Book a Seat`, etc.), makes a real `GET /api/v1/ads/serve` request, and asserts the response's `data.ad` has *exactly* the six documented keys (`id, title, description, image_path, cta_text, click_url`) in an exact-match assertion, not just "contains at least these" — so a future field rename/drop/addition in `AdController::serve()`/`AdRepository::findServableForPlacement()` fails this test loudly instead of the docs silently going stale. Also covers the missing-API-key `401` and the documented `data.ad: null` case for a placement with nothing eligible. **Live-verified: 3/3 pass, 13 assertions**, all matched the docs on the first run — no drift found between `api-docs.php` and the real implementation.
+- [x] **i** — Write a manual cross-browser QA checklist (doc only)
+- [x] **j** — Write a manual mobile-device QA checklist (doc only)
+- [x] **k** — Write a manual SQLi/XSS/auth-bypass check checklist (doc only)
+  - All three checklists are below, under [Manual QA Checklists](#manual-qa-checklists) — doc-only, no code.
+- [x] **l** — Add the "no endpoint merges without an integration test" rule to `CONTRIBUTING.md`
+  - Added, pointing at `LoginEndpointTest.php`/`AdsServeContractTest.php` as the reference examples.
+
+**Suite total: 16/16 passing, 57 assertions**, entirely against real MariaDB and (for f/h) a real spun-up HTTP server — no mocks anywhere in this suite, consistent with this project's existing testing philosophy.
+
+---
+
+## Manual QA Checklists
+
+Doc-only (13.i/13.j/13.k) — for a human to actually run through before a release, not automated. Check items off per release/major PR, don't just read them.
+
+### Cross-Browser QA
+
+- [ ] Landing page (`index.html`) renders correctly and the auth-aware navbar resolves correctly (guest/advertiser/admin) in Chrome, Firefox, Safari, and Edge
+- [ ] Create-ad's 3-step form (step navigation, live preview, image drag-drop) works in all four browsers — this is the form that already had a real TDZ bug (see Bug Fixes below), so re-check step navigation specifically
+- [ ] Dashboard/admin tables (My Ads, moderation queue, Connected Apps) render and paginate correctly in all four
+- [ ] Bootstrap tooltips (the ⓘ help-icon pattern, Section 2.3) actually appear on hover/focus in all four — Safari in particular has historically had quirks with tooltip positioning
+- [ ] CSS custom properties (`--color-*`, `--radius-*`, `--shadow-card`) render consistently — check for any browser silently falling back to unstyled defaults
+- [ ] No console errors on any of the above pages in any browser's dev tools
+
+### Mobile-Device QA
+
+- [ ] Sidebar collapses to the off-canvas drawer under 992px (Section 2.4.a) on a real phone-width viewport, not just a resized desktop window
+- [ ] Tables (My Ads, moderation queue) scroll horizontally instead of breaking layout (Section 2.4.b) on a real touch device — verify actual touch-scroll works, not just that overflow is set
+- [ ] Create-ad's live preview stacks below the form instead of sitting sticky beside it (Section 2.4.c)
+- [ ] Login/signup forms are usable on-screen with the mobile keyboard open (inputs not hidden behind the keyboard, submit button reachable)
+- [ ] Image upload (drag-drop area in create-ad) has a working tap-to-upload fallback, since drag-drop itself doesn't exist on touch
+- [ ] Test on at least one real iOS and one real Android device, not only browser dev-tools device emulation — emulation doesn't catch every touch/viewport quirk
+
+### Security Re-Check (SQLi / XSS / Auth-Bypass)
+
+A repeatable version of the same live checks already done once in 10.l — re-run this on any PR touching auth, uploads, or raw SQL (also now required by `CONTRIBUTING.md`'s Section 6 checklist rule):
+
+- [ ] Every new/changed query uses bound parameters — grep the diff for any string-concatenated SQL
+- [ ] Try submitting a classic SQLi payload (e.g. `' OR '1'='1`) in every text input that reaches a query — confirm it's treated as literal data, not SQL
+- [ ] Try submitting `<script>alert(1)</script>` (or similar) in every field that gets rendered back (ad title/description, user name) — confirm `htmlspecialchars()` output escaping actually neutralizes it
+- [ ] Try accessing every advertiser-only and admin-only route (a) with no session, (b) with the wrong role's session — confirm the same 302/401/403 behavior 10.l already verified once still holds
+- [ ] Try uploading a `.php` file renamed to `.jpg` as an ad image — confirm `core/Uploads.php`'s real-MIME-type check still rejects it (not just the extension)
+- [ ] Try replaying/omitting the CSRF token on a state-changing dashboard form — confirm it's still rejected with a 419
+- [ ] Fire rapid repeated requests at `/ads/serve` and the impression/click endpoints — confirm the rate limiter still returns 429 once the window's limit is hit
 
 ---
 
@@ -724,13 +800,26 @@ Performance ke liye indexes lagaye — status+placement pe composite index, user
 
 ## 1️⃣2️⃣ Coding Standards & Git Workflow — ✅ Done
 
-`CONTRIBUTING.md` ban gayi hai, jisme sab 9 rules likhe hain: PSR-12 style, PSR-4 autoload (composer.json ke real mapping ke sath), one-class-per-file, har repository method pe docblock, `main` branch hamesha deployable, ek feature = ek branch, commit format `[Module] description` (jo is project ki apni git history se hi liya hai), auth/upload/SQL PRs pe Section 6 checklist mandatory, aur merged migration kabhi edit na karna.
+`CONTRIBUTING.md` ban gayi hai, jisme (ab) 10 rules likhe hain: PSR-12 style, PSR-4 autoload (composer.json ke real mapping ke sath), one-class-per-file, har repository method pe docblock, `main` branch hamesha deployable, ek feature = ek branch, commit format `[Module] description` (jo is project ki apni git history se hi liya hai), auth/upload/SQL PRs pe Section 6 checklist mandatory, koi bhi naya/badla hua API endpoint bina integration test ke merge nahi hoga (Section 13 se aayi), aur merged migration kabhi edit na karna.
 
 ---
 
-## 1️⃣3️⃣ Testing & QA — ⬜ Not Started
+## 1️⃣3️⃣ Testing & QA — ✅ Done
 
-PHPUnit install karna, config banana, unit tests (validator rule, repository method, rollup calculation), ek integration test (auth→controller→DB→response), disposable test DB setup, API contract test, aur manual QA checklists (cross-browser, mobile, security) likhna.
+| Point | Tafseel |
+|---|---|
+| **a** | `composer.json` mein PHPUnit dev-dependency add ki. *Sach baat:* is session ke sandbox mein `packagist.org` tak internet access nahi tha, is liye asal `composer install` yahan nahi ho saka — apt se PHP/MariaDB/Composer install kiye aur Debian ka `phpunit` 9.6.17 stand-in test-runner ke tor pe use kiya taake live-testing phir bhi real DB/HTTP ke against ho sake. Aapke real machine pe ek dafa `composer update phpunit/phpunit --dev` chalana hoga (Quick Start ke "Running Tests" section mein likha hai) — ye step yahan nahi ho saka. |
+| **b** | `phpunit.xml` banaya. |
+| **c** | `Validator`'s har rule ke liye unit test (5 tests) — 100% pass. |
+| **d** | `AdRepository::findByStatus()` ka query-building unit test likha. **Isi se ek real bug pakda gaya:** 25 ads ek hi second mein seed karne se pagination (`LIMIT`/`OFFSET`) ka order kabhi-kabhi overlap kar raha tha, kyunke `ORDER BY created_at` akela tie-break nahi kar pata. **Fix:** `ads.id` ko secondary sort ke tor pe add kiya (`findByStatus` aur `findAllForUser` dono mein) — dobara test kiya, ab consistent hai. |
+| **e** | Stats rollup calculation ka unit test — 10.k wala manual test ab automated hai, dobara MariaDB ke against pass hua. |
+| **f** | Ek integration test (`login` endpoint) — real HTTP request, real router/middleware, real DB, real response — sab pass. |
+| **g** | Disposable test DB set up ki (`reset-test-db.php` + `.env.testing`). **Isi script mein bhi ek real bug mila aur fix hua** (`SHOW TABLES` ka fetch-mode galat tha, is liye tables drop nahi ho rahe the) — dobara test kiya, ab safe hai re-run karna. |
+| **h** | `/ads/serve` ka API contract test — `api-docs.php` ke documented example se exact match, koi drift nahi mila. |
+| **i–k** | Teen manual QA checklists likhi (cross-browser, mobile, security) — [Manual QA Checklists](#manual-qa-checklists) section mein. |
+| **l** | `CONTRIBUTING.md` mein rule add ki: koi bhi endpoint bina integration test ke merge nahi hoga. |
+
+**Total: 16/16 tests pass, 57 assertions** — sab real MariaDB ke against, mock kuch nahi.
 
 ---
 

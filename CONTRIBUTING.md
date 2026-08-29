@@ -90,6 +90,21 @@ not by reading the code — see the [Bug Fixes](README.md#bug-fixes-manual-qa)
 log for both. That's the bar: a PR touching this surface without a
 live re-test isn't done yet.
 
+## No endpoint merges without an integration test
+
+Any PR that adds or changes an API endpoint needs at least one
+integration test alongside it — a real request through
+`public/index.php`'s actual router/middleware pipeline (see
+`tests/Support/HttpServerTestCase.php`), not just a unit test calling
+the controller method directly. `tests/Auth/LoginEndpointTest.php` and
+`tests/Ads/AdsServeContractTest.php` are the reference examples —
+both spin up the real dev server, hit the real route, and assert on
+the real response, same as this project's existing "live test before
+committing" rule already requires by hand. The point of this rule is
+to make that check automated and repeatable instead of a one-off
+manual pass that has to be redone by hand every time something nearby
+changes.
+
 ## Never edit a merged migration
 
 Once a migration file has been applied anywhere (even just locally) and
