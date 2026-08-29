@@ -243,6 +243,40 @@
   }
 
   // -----------------------------------------------------------------------
+  // 3b. Logout — the sidebar's ".db-user-card__logout" link (both
+  // views/partials/sidebar-advertiser.php and sidebar-admin.php use the
+  // same class) used to just navigate to index.html directly, which
+  // never actually destroyed the session server-side — the cookie was
+  // still valid, so hitting Back (or the dashboard URL again) logged
+  // you straight back in. This calls the real POST /api/v1/auth/logout
+  // first and only navigates away once the session is actually gone.
+  //
+  // Hardcodes '../' rather than reading a page-supplied baseHref:
+  // every page that includes this script is one level under public/
+  // (dashboard/*.php or admin/*.php), so it's always '../' in practice
+  // — same assumption every one of those pages already makes for its
+  // own $baseHref.
+  // -----------------------------------------------------------------------
+  function initLogout() {
+    $all('.db-user-card__logout').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const csrfField = document.getElementById('_csrf-logout');
+        const headers = csrfField ? { 'X-CSRF-Token': csrfField.value } : {};
+
+        fetch('../api/v1/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+        })
+          .catch(function () { /* network error — still log the user out below */ })
+          .then(function () { window.location.href = '../index.html'; });
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // 4. Toasts
   // -----------------------------------------------------------------------
   function ensureToastStack() {
@@ -632,6 +666,7 @@
   // -----------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
     initSidebar();
+    initLogout();
     initCopyButtons();
     initCodeTabs();
     initDocsNav();

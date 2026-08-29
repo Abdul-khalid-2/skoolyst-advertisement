@@ -21,6 +21,7 @@ if (!empty($jsMockData['ads'])) {
 }
 ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?= csrf_field('_csrf-logout') ?>
 <script>window.SkoolystAdsMockData = <?= json_encode($jsMockData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
 <script src="<?= $baseHref ?>assets/js/dashboard.js"></script>
 <?php if ($pageScript !== ''): ?>
