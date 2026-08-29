@@ -81,6 +81,17 @@ class AdRepository
      * $status === null drops the WHERE clause entirely — backs
      * admin/ads.php's "All" tab, which countsByStatus()'s own `all`
      * key already counts but has no single status value of its own.
+     *
+     * ORDER BY carries `ads.id` as a tiebreaker after `created_at`
+     * (13.d finding): `created_at` alone is only second-precision, so
+     * ads created within the same second — e.g. several seeded/
+     * bulk-imported ads — have no defined relative order, which made
+     * LIMIT/OFFSET pagination genuinely non-deterministic (page 1 and
+     * page 2 could return the same row, or skip one, depending on
+     * MySQL's tie-breaking on that call). Caught by an automated
+     * pagination test seeding 25 ads in one go, not by manual
+     * click-through testing, since manually-created ads are rarely
+     * created in the same second.
      */
     public function findByStatus(?string $status, int $page = 1, int $perPage = 20): array
     {
@@ -108,7 +119,7 @@ class AdRepository
                     GROUP BY ad_id
                 ) stats ON stats.ad_id = ads.id
                 {$where}
-                ORDER BY ads.created_at ASC
+                ORDER BY ads.created_at ASC, ads.id ASC
                 LIMIT {$perPage} OFFSET {$offset}
             SQL,
             $status === null ? [] : ['status' => $status]
@@ -177,6 +188,13 @@ class AdRepository
      * event tables — 5.3.e) so my-ads.php (10.g) can render a row
      * without a separate lookup per ad.
      *
+     * ORDER BY carries `ads.id DESC` as a tiebreaker after
+     * `created_at DESC`, same reasoning and same 13.d finding as
+     * findByStatus() above — `created_at`'s second precision alone
+     * doesn't guarantee a stable order for rows created in the same
+     * second, which broke LIMIT/OFFSET pagination's no-overlap
+     * guarantee.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function findAllForUser(int $userId, int $page = 1, int $perPage = 20): array
@@ -202,7 +220,7 @@ class AdRepository
                     GROUP BY ad_id
                 ) stats ON stats.ad_id = ads.id
                 WHERE ads.user_id = :user_id
-                ORDER BY ads.created_at DESC
+                ORDER BY ads.created_at DESC, ads.id DESC
                 LIMIT {$perPage} OFFSET {$offset}
             SQL,
             ['user_id' => $userId]
