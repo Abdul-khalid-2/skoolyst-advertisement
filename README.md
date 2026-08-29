@@ -472,6 +472,18 @@ Real bugs found through manual click-through testing (not part of the Section 10
 
 ---
 
+## Login / Signup Pages & Auth-Aware Navbar
+
+Not part of the original roadmap — added because the landing page's navbar always showed "Dashboard"/"Create an Ad" regardless of login state, and there was genuinely no login/signup UI anywhere in the app (only the backend `/api/v1/auth/login`/`register` endpoints existed, tested only via curl/API calls throughout Sections 6–11). Building the navbar fix properly required these first.
+
+- **`public/login.php`** — new page. Redirects immediately to `admin/index.php`/`dashboard/my-ads.php` if already logged in (same role-check pattern as the other protected pages). Form submits via `fetch` to the existing `POST /api/v1/auth/login` (no changes to that endpoint) and redirects based on the returned `role`. Verified live: correct credentials → lands on `my-ads.php`; wrong password → inline "Incorrect email or password" error, stays on the page.
+- **`public/signup.php`** — new page, same pattern, posts to the existing `POST /api/v1/auth/register`. Client-side checks (all fields filled, password ≥ 8 chars, password/confirm match) run before hitting the API; server-side duplicate-email rejection is shown inline too. Since `register()` doesn't start a session itself (a deliberate Section 6 design choice — signup and login are separate steps), a successful signup redirects to `login.php?registered=1`, which shows a "account created" banner. Verified live end-to-end with a real headless-browser run: signup → banner on login page → login → lands on `my-ads.php`, zero console errors; duplicate-email and mismatched-password cases both caught and shown correctly.
+- **New endpoint: `GET /api/v1/auth/session`** (`app/Auth/AuthController::session()`) — a minimal public (`auth => false`) endpoint that returns `{loggedIn: false}` for a guest or `{loggedIn: true, role: '...'}` for a real session, with nothing else exposed. Exists purely so a static page can ask "is anyone logged in?" client-side.
+- **`index.html`'s navbar is now auth-aware.** The Dashboard/Create-an-Ad buttons are replaced by a small `fetch('api/v1/auth/session')` call on page load. Defaults to showing Login/Sign Up (the safe guess) so a logged-out visitor never briefly flashes Dashboard buttons before the check resolves; swaps to Dashboard (linked to `admin/index.php` for admins, `dashboard/index.php` for advertisers) + Create an Ad once a real session is confirmed. Verified live for all three states (guest, advertiser, admin) — correct buttons shown, and clicking Dashboard in each case actually lands on the right real page.
+- New auth-page styles added to `public/assets/css/style.css` (`.sk-auth-page`, `.sk-auth-card`, etc.) reusing the existing `--color-*`/`--radius-*`/`--shadow-card` design tokens — no new design system introduced.
+
+---
+
 ## 15. Future Enhancements
 
 **Status: ⬜ Not Started** *(deferred, not blocking)*

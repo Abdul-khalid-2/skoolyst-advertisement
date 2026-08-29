@@ -523,3 +523,101 @@ pre.api-preview-code {
   align-items: center;
   justify-content: center;
 }
+
+/* ============ AUTH PAGES (login.php / signup.php) ============ */
+.sk-auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-neutral-bg);
+  padding: 2rem 1rem;
+}
+
+.sk-auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-white);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 2.25rem 2rem;
+}
+
+.sk-auth-card .sk-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+}
+
+.sk-auth-card h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-neutral-text);
+  margin-bottom: 0.25rem;
+}
+
+.sk-auth-card p.sk-auth-sub {
+  color: var(--color-neutral-muted);
+  font-size: 0.92rem;
+  margin-bottom: 1.5rem;
+}
+
+.sk-auth-card label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-neutral-text);
+  margin-bottom: 0.35rem;
+}
+
+.sk-auth-card .form-control {
+  border-radius: var(--radius-sm);
+  border-color: var(--color-neutral-border);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+}
+
+.sk-auth-card .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.sk-auth-alert {
+  display: none;
+  font-size: 0.88rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.1rem;
+}
+
+.sk-auth-alert--error {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-danger);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+}
+
+.sk-auth-alert--success {
+  background: rgba(13, 148, 136, 0.08);
+  color: var(--color-success);
+  border: 1px solid rgba(13, 148, 136, 0.18);
+}
+
+.sk-auth-footer {
+  text-align: center;
+  margin-top: 1.35rem;
+  font-size: 0.88rem;
+  color: var(--color-neutral-muted);
+}
+
+.sk-auth-footer a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sk-auth-footer a:hover { text-decoration: underline; }

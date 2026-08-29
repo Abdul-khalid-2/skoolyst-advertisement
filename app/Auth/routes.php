@@ -32,4 +32,10 @@ return [
         'auth' => true,
         'handler' => [AuthController::class, 'logout'],
     ],
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/auth/session',
+        'auth' => false,
+        'handler' => [AuthController::class, 'session'],
+    ],
 ];

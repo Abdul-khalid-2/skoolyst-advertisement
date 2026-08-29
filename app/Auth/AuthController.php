@@ -106,4 +106,29 @@ class AuthController
         Middleware::destroySession();
         Response::success([]);
     }
+
+    /**
+     * GET /api/v1/auth/session
+     * Lets a static/public page (index.html's navbar) ask "is anyone
+     * logged in?" without exposing anything sensitive — just enough
+     * to decide which buttons to show. Public route (auth => false)
+     * on purpose: a guest calling this must not get an error, just
+     * {loggedIn: false}.
+     */
+    public function session(): void
+    {
+        $userId = Middleware::checkSession();
+        if ($userId === null) {
+            Response::success(['loggedIn' => false]);
+            return;
+        }
+
+        $user = $this->users->findById($userId);
+        if ($user === null) {
+            Response::success(['loggedIn' => false]);
+            return;
+        }
+
+        Response::success(['loggedIn' => true, 'role' => $user->role]);
+    }
 }
