@@ -77,7 +77,7 @@ Not runnable yet (no server exists), but for when it is:
 | 9 | [Folder Structure](#9-folder-structure) | ✅ Done |
 | 10 | [Build Order / Roadmap](#10-build-order--roadmap) | 🟨 In Progress |
 | 11 | [Tech Stack & Environment Setup](#11-tech-stack--environment-setup) | ✅ Done |
-| 12 | [Coding Standards & Git Workflow](#12-coding-standards--git-workflow) | ⬜ Not Started |
+| 12 | [Coding Standards & Git Workflow](#12-coding-standards--git-workflow) | ✅ Done |
 | 13 | [Testing & QA](#13-testing--qa) | ⬜ Not Started |
 | 14 | [Deployment](#14-deployment) | ⬜ Not Started |
 | 15 | [Future Enhancements](#15-future-enhancements) | ⬜ Not Started *(deferred, not blocking)* |
@@ -412,17 +412,19 @@ Not runnable yet (no server exists), but for when it is:
 
 ## 12. Coding Standards & Git Workflow
 
-**Status: ⬜ Not Started**
+**Status: ✅ Done**
 
-- [ ] **a** — Add a PSR-12 note to a `CONTRIBUTING.md`
-- [ ] **b** — Add a PSR-4 autoload mapping note to `CONTRIBUTING.md`
-- [ ] **c** — Add the "one-class-per-file, filename matches class name" rule to `CONTRIBUTING.md`
-- [ ] **d** — Add the "docblock every repository public method" rule to `CONTRIBUTING.md`
-- [ ] **e** — Add the "`main` is always deployable" rule to `CONTRIBUTING.md`
-- [ ] **f** — Add the "one feature branch per module task" convention to `CONTRIBUTING.md`
-- [ ] **g** — Add the `[Module] ...` commit message convention to `CONTRIBUTING.md`
-- [ ] **h** — Add "Section 6 checklist required on auth/upload/SQL PRs" rule to `CONTRIBUTING.md`
-- [ ] **i** — Add the "never edit a merged migration" rule to `CONTRIBUTING.md`
+- [x] **a** — Add a PSR-12 note to a `CONTRIBUTING.md`
+- [x] **b** — Add a PSR-4 autoload mapping note to `CONTRIBUTING.md`
+- [x] **c** — Add the "one-class-per-file, filename matches class name" rule to `CONTRIBUTING.md`
+- [x] **d** — Add the "docblock every repository public method" rule to `CONTRIBUTING.md`
+- [x] **e** — Add the "`main` is always deployable" rule to `CONTRIBUTING.md`
+- [x] **f** — Add the "one feature branch per module task" convention to `CONTRIBUTING.md`
+- [x] **g** — Add the `[Module] ...` commit message convention to `CONTRIBUTING.md`
+- [x] **h** — Add "Section 6 checklist required on auth/upload/SQL PRs" rule to `CONTRIBUTING.md`
+- [x] **i** — Add the "never edit a merged migration" rule to `CONTRIBUTING.md`
+
+All nine written into [`CONTRIBUTING.md`](CONTRIBUTING.md), each grounded in something already true of this codebase (existing docblock style, actual commit history, the real PSR-4 mapping in `composer.json`) rather than generic boilerplate.
 
 ---
 
@@ -720,9 +722,9 @@ Performance ke liye indexes lagaye — status+placement pe composite index, user
 
 ---
 
-## 1️⃣2️⃣ Coding Standards & Git Workflow — ⬜ Not Started
+## 1️⃣2️⃣ Coding Standards & Git Workflow — ✅ Done
 
-`CONTRIBUTING.md` banani hai jisme rules likhne hain: PSR-12 style, PSR-4 autoload, one-class-per-file, har repository method pe docblock, `main` branch hamesha deployable, ek feature = ek branch, commit format `[Module] description`, auth/upload/SQL PRs pe Section 6 checklist mandatory, aur merged migration kabhi edit na karna.
+`CONTRIBUTING.md` ban gayi hai, jisme sab 9 rules likhe hain: PSR-12 style, PSR-4 autoload (composer.json ke real mapping ke sath), one-class-per-file, har repository method pe docblock, `main` branch hamesha deployable, ek feature = ek branch, commit format `[Module] description` (jo is project ki apni git history se hi liya hai), auth/upload/SQL PRs pe Section 6 checklist mandatory, aur merged migration kabhi edit na karna.
 
 ---
 
