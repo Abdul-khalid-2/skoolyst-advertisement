@@ -333,8 +333,9 @@ class AdController
 
     /**
      * DELETE /api/v1/advertiser/ads/{id}
-     * Advertiser-only (6.g). deleteForUser() itself only affects a
-     * row owned by $userId — same ownership guarantee as every other
+     * Advertiser-only (6.g). Soft delete — deleteForUser() flips the
+     * ad's status to 'deleted' rather than removing the row (see that
+     * method for why), scoped to $userId same as every other
      * advertiser-facing method here.
      */
     public function destroy(): void

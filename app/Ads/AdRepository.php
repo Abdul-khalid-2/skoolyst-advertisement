@@ -78,9 +78,11 @@ class AdRepository
      * the queue needs to know who submitted each ad, an advertiser
      * viewing their own list already does.
      *
-     * $status === null drops the WHERE clause entirely — backs
-     * admin/ads.php's "All" tab, which countsByStatus()'s own `all`
-     * key already counts but has no single status value of its own.
+     * $status === null drops the status filter down to "not deleted"
+     * — backs admin/ads.php's "All" tab, which countsByStatus()'s own
+     * `all` key already counts (also excluding 'deleted') but has no
+     * single status value of its own. An explicit ?status=deleted
+     * still works via the exact-match branch below, if ever needed.
      *
      * ORDER BY carries `ads.id` as a tiebreaker after `created_at`
      * (13.d finding): `created_at` alone is only second-precision, so
@@ -97,7 +99,7 @@ class AdRepository
     {
         $perPage = max(1, min($perPage, 100));
         $offset = max(0, ($page - 1) * $perPage);
-        $where = $status === null ? '' : 'WHERE ads.status = :status';
+        $where = $status === null ? "WHERE ads.status != 'deleted'" : 'WHERE ads.status = :status';
 
         return Database::query(
             <<<SQL
@@ -138,7 +140,7 @@ class AdRepository
     {
         $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
 
-        $rows = Database::query('SELECT status, COUNT(*) AS total FROM ads GROUP BY status')->fetchAll();
+        $rows = Database::query("SELECT status, COUNT(*) AS total FROM ads WHERE status != 'deleted' GROUP BY status")->fetchAll();
 
         foreach ($rows as $row) {
             $counts[$row['status']] = (int) $row['total'];
@@ -219,7 +221,7 @@ class AdRepository
                     FROM ad_stats_daily
                     GROUP BY ad_id
                 ) stats ON stats.ad_id = ads.id
-                WHERE ads.user_id = :user_id
+                WHERE ads.user_id = :user_id AND ads.status != 'deleted'
                 ORDER BY ads.created_at DESC, ads.id DESC
                 LIMIT {$perPage} OFFSET {$offset}
             SQL,
@@ -230,12 +232,14 @@ class AdRepository
     /**
      * Total row count behind findAllForUser() — my-ads.php (10.g) needs
      * this to render "Page X of Y" against the real total, not just
-     * whether the current page happens to be full.
+     * whether the current page happens to be full. Excludes
+     * soft-deleted ads, same as findAllForUser() itself, so the page
+     * count never accounts for rows the advertiser can no longer see.
      */
     public function countForUser(int $userId): int
     {
         $row = Database::fetchOne(
-            'SELECT COUNT(*) AS total FROM ads WHERE user_id = :user_id',
+            "SELECT COUNT(*) AS total FROM ads WHERE user_id = :user_id AND status != 'deleted'",
             ['user_id' => $userId]
         );
 
@@ -256,7 +260,7 @@ class AdRepository
         $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
 
         $rows = Database::query(
-            'SELECT status, COUNT(*) AS total FROM ads WHERE user_id = :user_id GROUP BY status',
+            "SELECT status, COUNT(*) AS total FROM ads WHERE user_id = :user_id AND status != 'deleted' GROUP BY status",
             ['user_id' => $userId]
         )->fetchAll();
 
@@ -290,7 +294,7 @@ class AdRepository
             <<<SQL
                 SELECT id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date
                 FROM ads
-                WHERE id = :id AND user_id = :user_id
+                WHERE id = :id AND user_id = :user_id AND status != 'deleted'
                 LIMIT 1
             SQL,
             ['id' => $adId, 'user_id' => $userId]
@@ -482,21 +486,35 @@ class AdRepository
     }
 
     /**
-     * Advertiser-side Delete (10.n follow-up). Ownership guarantee via
-     * the WHERE clause, same pattern as every other *ForUser() method
-     * here. A hard delete, not a status flip to some "deleted" state —
-     * safe because ad_impressions/ad_clicks/ad_stats_daily all declare
-     * their `ad_id` foreign key ON DELETE CASCADE (migrations 0005,
-     * 0006, 0015), so deleting a row here cleans up its stats history
-     * too rather than leaving orphaned rows behind.
+     * Advertiser-side Delete (10.n follow-up, later switched to soft
+     * delete). Ownership guarantee via the WHERE clause, same pattern
+     * as every other *ForUser() method here. A status flip to
+     * 'deleted' rather than a hard DELETE — preserves ad_stats_daily/
+     * ad_impressions/ad_clicks history instead of losing it to their
+     * ON DELETE CASCADE, and means a mistaken delete isn't
+     * unrecoverable. Every list/count query in this class excludes
+     * 'deleted' explicitly, so the ad still disappears from the
+     * advertiser's and admin's normal views exactly as it did under
+     * the old hard delete.
+     *
+     * Existence is checked separately rather than trusting
+     * rowCount() > 0 on the UPDATE itself — same reasoning as
+     * updateStatus() above: re-deleting an already-'deleted' ad would
+     * change no columns, so MySQL reports 0 rows affected even though
+     * the row (still) matches, which would otherwise read as "not
+     * found" for an ad that's actually just already deleted.
      */
     public function deleteForUser(int $adId, int $userId): bool
     {
-        $statement = Database::query(
-            'DELETE FROM ads WHERE id = :id AND user_id = :user_id',
+        if (Database::fetchOne('SELECT id FROM ads WHERE id = :id AND user_id = :user_id', ['id' => $adId, 'user_id' => $userId]) === null) {
+            return false;
+        }
+
+        Database::query(
+            "UPDATE ads SET status = 'deleted' WHERE id = :id AND user_id = :user_id",
             ['id' => $adId, 'user_id' => $userId]
         );
 
-        return $statement->rowCount() > 0;
+        return true;
     }
 }
