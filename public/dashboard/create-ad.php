@@ -289,6 +289,7 @@ $pageScript = <<<JS
     // there's a real ad row behind it, so its label changes to match.
     document.getElementById('btn-save-draft').textContent = 'Save Changes';
 
+    document.getElementById('f-advertiser').value = editingAd.advertiser_name || '';
     document.getElementById('f-title').value = editingAd.title;
     document.getElementById('f-desc').value = editingAd.description || '';
     document.getElementById('f-cta').value = editingAd.cta_text || '';
@@ -451,19 +452,20 @@ $pageScript = <<<JS
   updatePreview();
 
   // 10.n — edit mode's real fields, mirroring what
-  // AdController::validatedAdInput() actually requires (title +
-  // click_url only — description/cta_text aren't required
+  // AdController::validatedAdInput() actually requires (advertiser_name,
+  // title, and click_url — description/cta_text aren't required
   // server-side). Kept separate from validateStep1(), which also
-  // requires 'f-advertiser' — a field the backend has never read or
-  // stored for any ad (create or edit), so forcing it here would
-  // block a real save on a field with no effect.
+  // requires 'f-desc'/'f-cta' as a step-by-step UX choice for new ads,
+  // not because the backend needs them.
   function validateEditFields() {
+    const advertiser = document.getElementById('f-advertiser');
     const title = document.getElementById('f-title');
     const url = document.getElementById('f-url');
     let ok = true;
+    if (!advertiser.value.trim()) { advertiser.classList.add('is-invalid'); ok = false; } else advertiser.classList.remove('is-invalid');
     if (!title.value.trim()) { title.classList.add('is-invalid'); ok = false; } else title.classList.remove('is-invalid');
     if (!url.value.trim()) { url.classList.add('is-invalid'); ok = false; } else url.classList.remove('is-invalid');
-    if (!ok) showToast('Title and destination URL are required.', 'error');
+    if (!ok) showToast('Advertiser name, title, and destination URL are required.', 'error');
     return ok;
   }
 
@@ -493,6 +495,7 @@ $pageScript = <<<JS
 
     const payload = {
       ad_id: editingAd.id,
+      advertiser_name: document.getElementById('f-advertiser').value.trim(),
       title: document.getElementById('f-title').value.trim(),
       description: document.getElementById('f-desc').value.trim(),
       cta_text: document.getElementById('f-cta').value.trim(),
@@ -578,6 +581,7 @@ $pageScript = <<<JS
     }
 
     const formData = new FormData();
+    formData.append('advertiser_name', document.getElementById('f-advertiser').value.trim());
     formData.append('title', document.getElementById('f-title').value.trim());
     formData.append('description', document.getElementById('f-desc').value.trim());
     formData.append('cta_text', document.getElementById('f-cta').value.trim());

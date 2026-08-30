@@ -267,12 +267,18 @@ class AdController
      */
     private function validatedAdInput(bool $requireAppPlacement = true): ?array
     {
+        $advertiserName = Request::string('advertiser_name');
         $title = Request::string('title');
         $description = Request::string('description');
         $ctaText = Request::string('cta_text');
         $clickUrl = Request::string('click_url');
         $startDate = Request::string('start_date') ?: null;
         $endDate = Request::string('end_date') ?: null;
+
+        if (!Validator::required($advertiserName) || !Validator::maxLength($advertiserName, 150)) {
+            Response::error(['code' => 'validation_error', 'message' => 'Advertiser / business name is required (max 150 characters).']);
+            return null;
+        }
 
         if (!Validator::required($title) || !Validator::maxLength($title, 150)) {
             Response::error(['code' => 'validation_error', 'message' => 'Title is required (max 150 characters).']);
@@ -295,6 +301,7 @@ class AdController
         }
 
         $data = [
+            'advertiser_name' => $advertiserName,
             'title' => $title,
             'description' => $description,
             'cta_text' => $ctaText,

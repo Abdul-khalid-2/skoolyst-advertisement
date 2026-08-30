@@ -288,7 +288,7 @@ class AdRepository
     {
         return Database::fetchOne(
             <<<SQL
-                SELECT id, app_id, placement_id, title, description, image_path, cta_text, click_url, status, start_date, end_date
+                SELECT id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date
                 FROM ads
                 WHERE id = :id AND user_id = :user_id
                 LIMIT 1
@@ -304,13 +304,14 @@ class AdRepository
     {
         Database::query(
             <<<SQL
-                INSERT INTO ads (user_id, app_id, placement_id, title, description, image_path, cta_text, click_url, status, start_date, end_date)
-                VALUES (:user_id, :app_id, :placement_id, :title, :description, :image_path, :cta_text, :click_url, 'pending', :start_date, :end_date)
+                INSERT INTO ads (user_id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date)
+                VALUES (:user_id, :app_id, :placement_id, :advertiser_name, :title, :description, :image_path, :cta_text, :click_url, 'pending', :start_date, :end_date)
             SQL,
             [
                 'user_id' => $userId,
                 'app_id' => $data['app_id'],
                 'placement_id' => $data['placement_id'],
+                'advertiser_name' => $data['advertiser_name'],
                 'title' => $data['title'],
                 'description' => $data['description'],
                 'image_path' => $data['image_path'],
@@ -336,6 +337,7 @@ class AdRepository
         $statement = Database::query(
             <<<SQL
                 UPDATE ads SET
+                    advertiser_name = :advertiser_name,
                     title = :title,
                     description = :description,
                     cta_text = :cta_text,
@@ -348,6 +350,7 @@ class AdRepository
             [
                 'id' => $adId,
                 'user_id' => $userId,
+                'advertiser_name' => $data['advertiser_name'],
                 'title' => $data['title'],
                 'description' => $data['description'],
                 'cta_text' => $data['cta_text'],
