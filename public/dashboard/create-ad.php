@@ -484,7 +484,7 @@ $pageScript = <<<JS
   // AdController::update(), the same endpoint (un)wired since 10.f),
   // then — only if a new image was actually chosen — a second,
   // separate POST for the image (AdController::updateImage()). Two
-  // requests, not one, because PHP only ever populates $_FILES for a
+  // requests, not one, because PHP only ever populates \$_FILES for a
   // multipart body on POST, never on PATCH/PUT, so an image change
   // can't ride along on the PATCH regardless of how it's encoded
   // client-side.
