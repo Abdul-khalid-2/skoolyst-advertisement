@@ -64,4 +64,22 @@ return [
         'auth' => true,
         'handler' => [AdController::class, 'updateImage'],
     ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/advertiser/ads/{id}/pause',
+        'auth' => true,
+        'handler' => [AdController::class, 'pause'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/advertiser/ads/{id}/activate',
+        'auth' => true,
+        'handler' => [AdController::class, 'activate'],
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/advertiser/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'destroy'],
+    ],
 ];

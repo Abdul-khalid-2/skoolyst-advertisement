@@ -257,6 +257,96 @@ class AdController
     }
 
     /**
+     * PATCH /api/v1/advertiser/ads/{id}/pause
+     * Advertiser-only (6.g). Only an already-'active' ad can be
+     * paused — an advertiser flipping a 'pending'/'rejected'/'draft'
+     * ad straight to 'paused' would let it skip moderation entirely,
+     * so that's rejected as a validation error rather than silently
+     * allowed or 404'd.
+     */
+    public function pause(): void
+    {
+        $this->setStatusForUser('active', 'paused', 'This ad can\'t be paused from its current status.');
+    }
+
+    /**
+     * PATCH /api/v1/advertiser/ads/{id}/activate
+     * Advertiser-only (6.g). Only a previously-'paused' ad can be
+     * reactivated this way — re-activating a 'draft' still has to go
+     * through update()/moderation like any new ad (it's never been
+     * approved), so 'draft' is deliberately not accepted here.
+     */
+    public function activate(): void
+    {
+        $this->setStatusForUser('paused', 'active', 'This ad can\'t be activated from its current status.');
+    }
+
+    /**
+     * Shared body for pause()/activate() — both are a single allowed
+     * status transition, scoped to the requesting advertiser's own
+     * ad. updateStatusForUser()'s WHERE clause already enforces
+     * ownership; the extra findForUser() lookup here exists only to
+     * tell "wrong current status" (422) apart from "no such ad, or
+     * not yours" (404), which a single UPDATE's rowCount() can't
+     * distinguish on its own.
+     */
+    private function setStatusForUser(string $fromStatus, string $toStatus, string $wrongStatusMessage): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findForUser($adId, $userId);
+        if ($ad === null) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        if ($ad['status'] !== $fromStatus) {
+            Response::error(['code' => 'validation_error', 'message' => $wrongStatusMessage]);
+            return;
+        }
+
+        $this->ads->updateStatusForUser($adId, $userId, $toStatus);
+
+        Response::success([]);
+    }
+
+    /**
+     * DELETE /api/v1/advertiser/ads/{id}
+     * Advertiser-only (6.g). deleteForUser() itself only affects a
+     * row owned by $userId — same ownership guarantee as every other
+     * advertiser-facing method here.
+     */
+    public function destroy(): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->deleteForUser($adId, $userId)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
+    }
+
+    /**
      * Shared validation for store()/update(). Ad copy is stored as
      * plain trimmed text here — output escaping (6.n) happens at
      * render time in views/components/ads-table.php via

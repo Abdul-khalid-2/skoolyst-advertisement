@@ -386,4 +386,41 @@ class AdRepository
 
         return $statement->rowCount() > 0;
     }
+
+    /**
+     * Advertiser-side Pause/Activate (10.n follow-up) — same idea as
+     * updateStatus() (admin approve/reject), but scoped to a row the
+     * requesting advertiser actually owns, same ownership guarantee
+     * as updateForUser()/updateImageForUser() above. Only ever called
+     * with 'paused' or 'active' from AdController — an advertiser
+     * can't set 'pending'/'rejected'/etc. through this path.
+     */
+    public function updateStatusForUser(int $adId, int $userId, string $status): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET status = :status WHERE id = :id AND user_id = :user_id',
+            ['id' => $adId, 'user_id' => $userId, 'status' => $status]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Advertiser-side Delete (10.n follow-up). Ownership guarantee via
+     * the WHERE clause, same pattern as every other *ForUser() method
+     * here. A hard delete, not a status flip to some "deleted" state —
+     * safe because ad_impressions/ad_clicks/ad_stats_daily all declare
+     * their `ad_id` foreign key ON DELETE CASCADE (migrations 0005,
+     * 0006, 0015), so deleting a row here cleans up its stats history
+     * too rather than leaving orphaned rows behind.
+     */
+    public function deleteForUser(int $adId, int $userId): bool
+    {
+        $statement = Database::query(
+            'DELETE FROM ads WHERE id = :id AND user_id = :user_id',
+            ['id' => $adId, 'user_id' => $userId]
+        );
+
+        return $statement->rowCount() > 0;
+    }
 }
