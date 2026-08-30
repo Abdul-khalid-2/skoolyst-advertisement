@@ -649,6 +649,32 @@
   }
   window.SkoolystAdsUI.filterRenderedRows = filterRenderedRows;
 
+  // ---------------------------------------------------------------------
+  // 10.n — filterRenderedRows() above only shows/hides rows; it never
+  // wired the Edit/Pause/Activate/Delete buttons on server-rendered ad
+  // rows (my-ads.php, dashboard's Recent Ads) to anything real, so
+  // clicking Edit there previously did nothing at all. This wires just
+  // the Edit button — Pause/Activate/Delete on these same rows are still
+  // unwired, tracked separately — to the real edit page, reading the ad
+  // id off the row's own data-ad-id rather than the mock array
+  // wireRowActions() (above, for the mock-data table) reads it from.
+  // Delegated to the tbody itself (one listener) so it keeps working
+  // after filterRenderedRows() toggles row visibility.
+  // ---------------------------------------------------------------------
+  function wireEditLinks(tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    tbody.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-action="edit"]');
+      if (!btn) return;
+      const tr = btn.closest('tr');
+      if (!tr || !tr.dataset.adId) return;
+      window.location.href = 'create-ad.php?edit=' + encodeURIComponent(tr.dataset.adId);
+    });
+  }
+  window.SkoolystAdsUI.wireEditLinks = wireEditLinks;
+
   // -----------------------------------------------------------------------
   // 11. Help tooltips — see views/components/help-icon.php.
   // One initializer turns every [data-bs-toggle="tooltip"] on the page

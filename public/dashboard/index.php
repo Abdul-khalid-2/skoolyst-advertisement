@@ -232,6 +232,8 @@ $impressionsChartJson = json_encode($impressionsChartData, JSON_UNESCAPED_SLASHE
 $pageScript = <<<JS
 document.addEventListener('DOMContentLoaded', function () {
   SkoolystAdsUI.renderBarChart('impressions-chart', {$impressionsChartJson});
+  // 10.n — same real-row edit wiring as my-ads.php.
+  SkoolystAdsUI.wireEditLinks('recent-ads-body');
 });
 JS;
 

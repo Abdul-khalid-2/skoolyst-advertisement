@@ -171,12 +171,10 @@ $pageScript = <<<JS
 (function () {
   'use strict';
 
-  // Real apps/placements (10.f) — fetched from the DB-backed
+  // Real apps/placements (10.f), fetched from the DB-backed
   // /api/v1/advertiser/apps endpoint instead of data/mock-data.php's
   // string codes, which can't satisfy the ads table's app_id/
-  // placement_id foreign keys. Edit mode (below) still reads the
-  // mock ad list; wiring my-ads.php/edit to the real API is 10.g,
-  // not this item.
+  // placement_id foreign keys.
   let liveApps = [];
   let selectedApp = null;
   let selectedPlacementId = null;
@@ -186,7 +184,13 @@ $pageScript = <<<JS
 
   const params = new URLSearchParams(window.location.search);
   const editId = params.get('edit');
-  const editingAd = editId ? SkoolystAdsMockData.ads.find(function (a) { return a.id === editId; }) : null;
+  // Populated async by loadEditingAd() below, from the real
+  // AdController::show() endpoint — not data/mock-data.php. Every
+  // place below that reads `editingAd` runs after that fetch resolves
+  // (either chained off it, or off a later user action like clicking
+  // Submit), never synchronously at page-load time, so this starting
+  // as null is safe.
+  let editingAd = null;
 
   // Declared here (not next to fileInput/fileDrop below, where it used to
   // live) because wireCount() below calls updatePreview() immediately,
@@ -194,13 +198,7 @@ $pageScript = <<<JS
   // line runs throws "Cannot access before initialization" and silently
   // aborts the rest of this script, including all step-navigation wiring
   // further down. That's why "Next" previously did nothing at all.
-  let currentImageSrc = editingAd ? editingAd.image : '../assets/img/ad-1.svg';
-
-  if (editingAd) {
-    document.getElementById('page-title').textContent = 'Edit Ad';
-    document.getElementById('page-crumb').textContent = editingAd.title;
-    document.getElementById('btn-save-draft').textContent = 'Save Changes';
-  }
+  let currentImageSrc = '../assets/img/ad-1.svg';
 
   const grid = document.getElementById('app-checkgrid');
 
@@ -236,9 +234,9 @@ $pageScript = <<<JS
     selectedPlacementId = e.target.value || null;
   });
 
-  // Fetch real apps+placements, then (only for edit mode, which still
-  // works off the mock ad) pre-select the ones matching the mock ad's
-  // string codes if a same-named app happens to exist.
+  // Real apps/placements are needed either way: a new ad's Step 2
+  // picker, or (edit mode) to resolve the ad's stored app_id/
+  // placement_id into the names shown in that same step.
   fetch('{$baseHref}api/v1/advertiser/apps', { credentials: 'same-origin' })
     .then(function (res) { return res.json(); })
     .then(function (json) {
@@ -248,25 +246,88 @@ $pageScript = <<<JS
       }
       liveApps = json.data.apps;
       renderAppGrid();
-      if (editingAd) {
-        applyEditingAdSelection();
+      if (editId) {
+        loadEditingAd();
       }
     })
     .catch(function () {
       showToast('Could not load connected apps — check your connection.', 'error');
     });
 
+  // 10.n — real edit mode: loads the advertiser's own ad from the DB
+  // (AdController::show(), ownership-checked server-side against the
+  // logged-in session — not a client-side id lookup) instead of the
+  // old data/mock-data.php array. `ad_id` is sent as a query param
+  // because the router matches `{id}` in the path but never binds it
+  // (see routePathToRegex()'s doc-block in public/index.php); the
+  // real value has to travel as a field Request::int() actually reads.
+  function loadEditingAd() {
+    const url = '{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editId) + '?ad_id=' + encodeURIComponent(editId);
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (res) {
+        return res.json().then(function (json) { return { ok: res.ok, json: json }; });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.json.success) {
+          showToast('Could not load this ad — it may not exist or belong to your account.', 'error');
+          window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 1200);
+          return;
+        }
+        editingAd = result.json.data.ad;
+        applyEditingAdSelection();
+      })
+      .catch(function () {
+        showToast('Network error loading this ad — please try again.', 'error');
+      });
+  }
+
   function applyEditingAdSelection() {
-    document.getElementById('f-advertiser').value = editingAd.advertiser;
+    document.getElementById('page-title').textContent = 'Edit Ad';
+    document.getElementById('page-crumb').textContent = editingAd.title;
+    // This button is the real quick-save action in edit mode (see the
+    // click handler near the bottom) — it isn't a draft anymore once
+    // there's a real ad row behind it, so its label changes to match.
+    document.getElementById('btn-save-draft').textContent = 'Save Changes';
+
     document.getElementById('f-title').value = editingAd.title;
-    document.getElementById('f-desc').value = editingAd.description;
-    document.getElementById('f-cta').value = editingAd.cta;
-    document.getElementById('f-url').value = editingAd.url;
-    document.getElementById('f-start').value = editingAd.startDate;
-    document.getElementById('f-end').value = editingAd.endDate;
-    const drop = document.getElementById('file-drop');
-    drop.classList.add('has-image');
-    drop.innerHTML = '<img src="' + editingAd.image + '" alt="">';
+    document.getElementById('f-desc').value = editingAd.description || '';
+    document.getElementById('f-cta').value = editingAd.cta_text || '';
+    document.getElementById('f-url').value = editingAd.click_url || '';
+    document.getElementById('f-start').value = editingAd.start_date || '';
+    document.getElementById('f-end').value = editingAd.end_date || '';
+    // Re-fire 'input' so wireCount()'s character-count labels (which
+    // only update on a real input event, not a programmatic .value
+    // assignment) reflect the loaded text right away.
+    document.getElementById('f-title').dispatchEvent(new Event('input'));
+    document.getElementById('f-desc').dispatchEvent(new Event('input'));
+
+    if (editingAd.image_path) {
+      currentImageSrc = '{$baseHref}images/ads/' + editingAd.image_path;
+      const drop = document.getElementById('file-drop');
+      drop.classList.add('has-image');
+      drop.innerHTML = '<img src="' + currentImageSrc + '" alt="">';
+    }
+
+    // An ad's app/placement can't be changed once created —
+    // AdController::update() never accepts app_id/placement_id, so
+    // the ad stays on whichever it was submitted with. Step 2 still
+    // shows which app/placement that is, but pre-selected and locked
+    // rather than left as a live picker.
+    selectedApp = String(editingAd.app_id);
+    const radio = grid.querySelector('input[value="' + selectedApp + '"]');
+    if (radio) { radio.checked = true; }
+    Array.prototype.forEach.call(grid.querySelectorAll('input[name="target-app"]'), function (input) {
+      input.disabled = true;
+    });
+    // populatePlacements() resets selectedPlacementId to null as part
+    // of rebuilding the <select> for the new app — so the ad's real
+    // placement_id has to be (re-)applied after that call, not before.
+    populatePlacements(selectedApp);
+    selectedPlacementId = String(editingAd.placement_id);
+    const placementSelect = document.getElementById('f-placement');
+    placementSelect.value = selectedPlacementId;
+    placementSelect.disabled = true;
+
     updatePreview();
   }
 
@@ -389,15 +450,121 @@ $pageScript = <<<JS
   showStep(1);
   updatePreview();
 
+  // 10.n — edit mode's real fields, mirroring what
+  // AdController::validatedAdInput() actually requires (title +
+  // click_url only — description/cta_text aren't required
+  // server-side). Kept separate from validateStep1(), which also
+  // requires 'f-advertiser' — a field the backend has never read or
+  // stored for any ad (create or edit), so forcing it here would
+  // block a real save on a field with no effect.
+  function validateEditFields() {
+    const title = document.getElementById('f-title');
+    const url = document.getElementById('f-url');
+    let ok = true;
+    if (!title.value.trim()) { title.classList.add('is-invalid'); ok = false; } else title.classList.remove('is-invalid');
+    if (!url.value.trim()) { url.classList.add('is-invalid'); ok = false; } else url.classList.remove('is-invalid');
+    if (!ok) showToast('Title and destination URL are required.', 'error');
+    return ok;
+  }
+
+  function setSavingState(saving) {
+    btnSubmit.disabled = saving;
+    document.getElementById('btn-save-draft').disabled = saving;
+    btnSubmit.innerHTML = saving
+      ? '<i class="bi bi-hourglass-split me-1"></i> Saving…'
+      : '<i class="bi bi-send-check me-1"></i> Submit for Review';
+  }
+
+  function finishEditSave() {
+    showToast('Changes saved.', 'success');
+    window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+  }
+
+  // 10.n — real edit save: PATCH the text fields as JSON (this is
+  // AdController::update(), the same endpoint (un)wired since 10.f),
+  // then — only if a new image was actually chosen — a second,
+  // separate POST for the image (AdController::updateImage()). Two
+  // requests, not one, because PHP only ever populates $_FILES for a
+  // multipart body on POST, never on PATCH/PUT, so an image change
+  // can't ride along on the PATCH regardless of how it's encoded
+  // client-side.
+  function submitEdit() {
+    if (!validateEditFields()) return;
+
+    const payload = {
+      ad_id: editingAd.id,
+      title: document.getElementById('f-title').value.trim(),
+      description: document.getElementById('f-desc').value.trim(),
+      cta_text: document.getElementById('f-cta').value.trim(),
+      click_url: document.getElementById('f-url').value.trim(),
+      start_date: document.getElementById('f-start').value,
+      end_date: document.getElementById('f-end').value,
+    };
+
+    setSavingState(true);
+
+    fetch('{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editingAd.id), {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.getElementById('_csrf').value,
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) {
+        return res.json().then(function (json) { return { ok: res.ok, json: json }; });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.json.success) {
+          const message = (result.json.error && result.json.error.message) || 'Could not save changes.';
+          showToast(message, 'error');
+          setSavingState(false);
+          return;
+        }
+
+        const newImageFile = fileInput.files && fileInput.files[0];
+        if (!newImageFile) {
+          finishEditSave();
+          return;
+        }
+
+        const imageForm = new FormData();
+        imageForm.append('ad_id', editingAd.id);
+        imageForm.append('image', newImageFile);
+
+        fetch('{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editingAd.id) + '/image', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': document.getElementById('_csrf').value },
+          body: imageForm,
+        })
+          .then(function (res) {
+            return res.json().then(function (json) { return { ok: res.ok, json: json }; });
+          })
+          .then(function (imgResult) {
+            if (!imgResult.ok || !imgResult.json.success) {
+              const message = (imgResult.json.error && imgResult.json.error.message) || 'Could not upload the new image.';
+              showToast('Ad details saved, but ' + message.charAt(0).toLowerCase() + message.slice(1), 'error');
+            }
+            finishEditSave();
+          })
+          .catch(function () {
+            showToast('Ad details saved, but the new image could not be uploaded — check your connection.', 'error');
+            finishEditSave();
+          });
+      })
+      .catch(function () {
+        showToast('Network error — please try again.', 'error');
+        setSavingState(false);
+      });
+  }
+
   document.getElementById('ad-form').addEventListener('submit', function (e) {
     e.preventDefault();
 
-    // Edit mode still goes through my-ads.php's real PATCH wiring
-    // (10.g) — out of scope here. Only the "new ad" path below is
-    // 10.f's target.
     if (editingAd) {
-      showToast('Changes submitted for review.', 'success');
-      window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+      submitEdit();
       return;
     }
 
@@ -454,6 +621,17 @@ $pageScript = <<<JS
   });
 
   document.getElementById('btn-save-draft').addEventListener('click', function () {
+    // 10.n — in edit mode this button is relabeled "Save Changes"
+    // (applyEditingAdSelection() above) and is the primary save
+    // action, reachable from any step without clicking through the
+    // whole wizard — so it now actually saves, via the same
+    // submitEdit() the form's real Submit button uses. The "new ad"
+    // draft path below (still a placeholder — no draft-saving
+    // endpoint exists yet) is unchanged.
+    if (editingAd) {
+      submitEdit();
+      return;
+    }
     showToast('Draft saved.', 'info');
     window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
   });

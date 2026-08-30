@@ -122,6 +122,11 @@ document.addEventListener('DOMContentLoaded', function () {
     statusId: 'filter-status',
     appId: 'filter-app',
   });
+  // 10.n — Edit button on these real, server-rendered rows was
+  // previously dead (filterRenderedRows() only shows/hides rows, it
+  // never wires their action buttons). Pause/Activate/Delete on this
+  // same table are still unwired — tracked separately.
+  SkoolystAdsUI.wireEditLinks('ads-table-body');
 });
 JS;
 

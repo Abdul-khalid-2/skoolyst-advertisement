@@ -47,9 +47,21 @@ return [
         'handler' => [AdController::class, 'store'],
     ],
     [
+        'method' => 'GET',
+        'path' => '/api/v1/advertiser/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'show'],
+    ],
+    [
         'method' => 'PATCH',
         'path' => '/api/v1/advertiser/ads/{id}',
         'auth' => true,
         'handler' => [AdController::class, 'update'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/advertiser/ads/{id}/image',
+        'auth' => true,
+        'handler' => [AdController::class, 'updateImage'],
     ],
 ];

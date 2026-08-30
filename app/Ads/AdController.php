@@ -148,6 +148,35 @@ class AdController
     }
 
     /**
+     * GET /api/v1/advertiser/ads/{id}
+     * Advertiser-only (6.g). Backs the "Edit Ad" form's prefill —
+     * findForUser() itself only returns a row owned by $userId, so an
+     * advertiser can't load another advertiser's ad by guessing its id.
+     */
+    public function show(): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findForUser($adId, $userId);
+
+        if ($ad === null) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['ad' => $ad]);
+    }
+
+    /**
      * PATCH /api/v1/advertiser/ads/{id}
      * Advertiser-only (6.g), and updateForUser() itself only affects a
      * row owned by $userId — an advertiser can't edit another
@@ -179,6 +208,52 @@ class AdController
         }
 
         Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/advertiser/ads/{id}/image
+     * Advertiser-only (6.g). Split out from update() as its own POST
+     * endpoint rather than a field on the PATCH body: a new image can
+     * only ever arrive as multipart/form-data, and PHP only populates
+     * $_FILES for that content type on a POST request — never on
+     * PATCH/PUT, whatever the client sends. Same re-encode/validate
+     * pipeline as store() (6.o–6.r); updateImageForUser() itself only
+     * affects a row owned by $userId, same ownership guarantee as
+     * update().
+     */
+    public function updateImage(): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
+            Response::error(['code' => 'validation_error', 'message' => 'An image file is required.']);
+            return;
+        }
+
+        try {
+            $imagePath = Uploads::storeAdImage($_FILES['image']);
+        } catch (\RuntimeException $e) {
+            Response::error(['code' => 'invalid_image', 'message' => $e->getMessage()]);
+            return;
+        }
+
+        $updated = $this->ads->updateImageForUser($adId, $userId, $imagePath);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['image_path' => $imagePath]);
     }
 
     /**

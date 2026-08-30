@@ -269,6 +269,35 @@ class AdRepository
     }
 
     /**
+     * GET /api/v1/advertiser/ads/{id} — feeds the "Edit Ad" form's
+     * prefill (my-ads.php's edit button). Scoped to `user_id` in the
+     * WHERE clause, same as updateForUser() below, so one advertiser
+     * can never load another advertiser's ad by guessing its id — a
+     * mismatched id/user_id simply returns null, same "not found"
+     * shape the controller already uses for updateForUser()'s own
+     * ownership check.
+     *
+     * Returns every field the edit form needs, including
+     * `placement_id` (not selectable from findAllForUser()'s joined
+     * row, which only has the human-readable `placement_label`) so
+     * the form can pre-select the right placement in its dropdown.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findForUser(int $adId, int $userId): ?array
+    {
+        return Database::fetchOne(
+            <<<SQL
+                SELECT id, app_id, placement_id, title, description, image_path, cta_text, click_url, status, start_date, end_date
+                FROM ads
+                WHERE id = :id AND user_id = :user_id
+                LIMIT 1
+            SQL,
+            ['id' => $adId, 'user_id' => $userId]
+        );
+    }
+
+    /**
      * @param array<string, mixed> $data Validated fields from AdValidator.
      */
     public function create(int $userId, array $data): array
@@ -326,6 +355,30 @@ class AdRepository
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
             ]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Replaces just an ad's image — kept as its own method (and its
+     * own endpoint, AdController::updateImage()) rather than folded
+     * into updateForUser()'s field list, because a new image file can
+     * only ever arrive as a multipart/form-data body, and PHP only
+     * populates $_FILES for that content type on a POST request, never
+     * on PATCH/PUT — so the rest of an edit (title, description, etc.)
+     * goes through updateForUser() as a plain PATCH+JSON request,
+     * while an image change (if any) is a separate POST call.
+     *
+     * Same ownership guarantee as updateForUser(): the WHERE clause
+     * carries the `user_id` check, not a separate lookup a caller
+     * could forget to make.
+     */
+    public function updateImageForUser(int $adId, int $userId, string $imagePath): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET image_path = :image_path WHERE id = :id AND user_id = :user_id',
+            ['id' => $adId, 'user_id' => $userId, 'image_path' => $imagePath]
         );
 
         return $statement->rowCount() > 0;
