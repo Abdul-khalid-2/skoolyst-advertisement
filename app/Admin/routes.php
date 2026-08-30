@@ -30,4 +30,16 @@ return [
         'auth' => true,
         'handler' => [ModerationController::class, 'reject'],
     ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/ads/{id}/pause',
+        'auth' => true,
+        'handler' => [ModerationController::class, 'pause'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/ads/{id}/activate',
+        'auth' => true,
+        'handler' => [ModerationController::class, 'activate'],
+    ],
 ];

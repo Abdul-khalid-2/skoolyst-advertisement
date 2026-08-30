@@ -157,7 +157,7 @@ $pageScript = <<<'JS'
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var action = btn.dataset.action;
-    if (action !== 'approve' && action !== 'reject' && action !== 'delete') return;
+    if (action !== 'approve' && action !== 'reject' && action !== 'delete' && action !== 'pause' && action !== 'activate') return;
 
     var tr = btn.closest('tr');
     var adId = tr.dataset.adId;
@@ -205,6 +205,8 @@ $pageScript = <<<'JS'
         }
         var successMessage = action === 'approve' ? 'Ad approved and set live.'
           : action === 'reject' ? 'Ad rejected.'
+          : action === 'pause' ? 'Ad paused.'
+          : action === 'activate' ? 'Ad activated.'
           : 'Ad deleted.';
         showToast(successMessage, 'success');
         window.setTimeout(function () { window.location.reload(); }, 700);
