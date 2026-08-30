@@ -157,7 +157,7 @@ $pageScript = <<<'JS'
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var action = btn.dataset.action;
-    if (action !== 'approve' && action !== 'reject') return;
+    if (action !== 'approve' && action !== 'reject' && action !== 'delete') return;
 
     var tr = btn.closest('tr');
     var adId = tr.dataset.adId;
@@ -170,12 +170,22 @@ $pageScript = <<<'JS'
       body.reason = reason;
     }
 
-    var endpoint = '../api/v1/admin/ads/' + encodeURIComponent(adId) + '/' + action;
+    // Admin delete (soft delete, unscoped by owner) — same confirm +
+    // reload-on-success pattern as approve/reject above, just against
+    // the DELETE /admin/ads/{id} endpoint instead of a /approve or
+    // /reject sub-path.
+    if (action === 'delete') {
+      if (!window.confirm('Delete "' + title + '"? This cannot be undone.')) return;
+    }
+
+    var endpoint = action === 'delete'
+      ? '../api/v1/admin/ads/' + encodeURIComponent(adId)
+      : '../api/v1/admin/ads/' + encodeURIComponent(adId) + '/' + action;
     var buttons = tr.querySelectorAll('[data-action]');
     buttons.forEach(function (b) { b.disabled = true; });
 
     fetch(endpoint, {
-      method: 'PATCH',
+      method: action === 'delete' ? 'DELETE' : 'PATCH',
       credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
@@ -193,7 +203,10 @@ $pageScript = <<<'JS'
           buttons.forEach(function (b) { b.disabled = false; });
           return;
         }
-        showToast(action === 'approve' ? 'Ad approved and set live.' : 'Ad rejected.', 'success');
+        var successMessage = action === 'approve' ? 'Ad approved and set live.'
+          : action === 'reject' ? 'Ad rejected.'
+          : 'Ad deleted.';
+        showToast(successMessage, 'success');
         window.setTimeout(function () { window.location.reload(); }, 700);
       })
       .catch(function () {

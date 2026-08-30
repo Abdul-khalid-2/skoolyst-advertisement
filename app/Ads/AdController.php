@@ -463,6 +463,34 @@ class AdController
     }
 
     /**
+     * DELETE /api/v1/admin/ads/{id}
+     * Admin-only counterpart to the advertiser's destroy() — same
+     * soft-delete behaviour (deleteById() flips status to 'deleted'
+     * rather than removing the row), but unscoped by owner since an
+     * admin deletes any advertiser's ad, not just their own.
+     */
+    public function adminDestroy(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->deleteById($adId)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
+    }
+
+    /**
      * Shared validation for store()/update(). Ad copy is stored as
      * plain trimmed text here — output escaping (6.n) happens at
      * render time in views/components/ads-table.php via

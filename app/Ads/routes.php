@@ -105,4 +105,10 @@ return [
         'auth' => true,
         'handler' => [AdController::class, 'adminUpdateImage'],
     ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/admin/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'adminDestroy'],
+    ],
 ];

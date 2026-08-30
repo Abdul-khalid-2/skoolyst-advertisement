@@ -517,4 +517,28 @@ class AdRepository
 
         return true;
     }
+
+    /**
+     * Admin-side counterpart to deleteForUser() — no `user_id` filter,
+     * same reasoning as updateById()/updateImageById() above (an
+     * admin manages every advertiser's ads, not just their own). Same
+     * soft-delete behaviour (status flips to 'deleted', row is kept
+     * for ad_stats_daily/ad_impressions/ad_clicks history) and the
+     * same existence-checked-separately pattern as deleteForUser(),
+     * so re-deleting an already-'deleted' ad still reports success
+     * instead of a false "not found".
+     */
+    public function deleteById(int $adId): bool
+    {
+        if (Database::fetchOne('SELECT id FROM ads WHERE id = :id', ['id' => $adId]) === null) {
+            return false;
+        }
+
+        Database::query(
+            "UPDATE ads SET status = 'deleted' WHERE id = :id",
+            ['id' => $adId]
+        );
+
+        return true;
+    }
 }
