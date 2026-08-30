@@ -388,6 +388,82 @@ class AdRepository
     }
 
     /**
+     * Admin-side counterpart to findForUser() — same field list (the
+     * edit form needs it regardless of who's loading it), but no
+     * `user_id` filter: an admin edits any advertiser's ad, not just
+     * their own. Ownership scoping isn't relevant here because the
+     * caller (AdController::adminShow()) already gated on the admin
+     * role, not on owning the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findById(int $adId): ?array
+    {
+        return Database::fetchOne(
+            <<<SQL
+                SELECT id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date
+                FROM ads
+                WHERE id = :id
+                LIMIT 1
+            SQL,
+            ['id' => $adId]
+        );
+    }
+
+    /**
+     * Admin-side counterpart to updateForUser() — no `user_id` filter,
+     * and deliberately does NOT reset `status` to 'pending' the way
+     * updateForUser() does. That reset exists to send an advertiser's
+     * edit back through moderation; an admin editing an ad *is* the
+     * moderator, so their edit shouldn't pull an already-live ad out
+     * of rotation or bump a paused/rejected ad's status on its own.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateById(int $adId, array $data): bool
+    {
+        $statement = Database::query(
+            <<<SQL
+                UPDATE ads SET
+                    advertiser_name = :advertiser_name,
+                    title = :title,
+                    description = :description,
+                    cta_text = :cta_text,
+                    click_url = :click_url,
+                    start_date = :start_date,
+                    end_date = :end_date
+                WHERE id = :id
+            SQL,
+            [
+                'id' => $adId,
+                'advertiser_name' => $data['advertiser_name'],
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'cta_text' => $data['cta_text'],
+                'click_url' => $data['click_url'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+            ]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Admin-side counterpart to updateImageForUser() — no `user_id`
+     * filter, same reasoning as updateById() above.
+     */
+    public function updateImageById(int $adId, string $imagePath): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET image_path = :image_path WHERE id = :id',
+            ['id' => $adId, 'image_path' => $imagePath]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
      * Advertiser-side Pause/Activate (10.n follow-up) — same idea as
      * updateStatus() (admin approve/reject), but scoped to a row the
      * requesting advertiser actually owns, same ownership guarantee

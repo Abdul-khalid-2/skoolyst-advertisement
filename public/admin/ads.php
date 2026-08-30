@@ -140,6 +140,13 @@ $pageScript = <<<'JS'
     appId: 'filter-app',
   });
 
+  // 10.n admin-edit follow-up — Edit was rendered on every non-pending
+  // row (views/components/ads-table.php) but never wired on this page,
+  // so it did nothing. create-ad.php lives one level up and back down
+  // from here (public/admin/ -> public/dashboard/), unlike my-ads.php's
+  // same-directory default.
+  SkoolystAdsUI.wireEditLinks('ads-table-body', '../dashboard/create-ad.php?edit=');
+
   // Approve/reject (10.h) call the real admin API and only touch the
   // DOM once the server confirms the change — status/app/pagination
   // filters above are all page-scoped, so on success the simplest

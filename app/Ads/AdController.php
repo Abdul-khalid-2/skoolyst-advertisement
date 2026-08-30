@@ -5,9 +5,9 @@ namespace App\Ads;
 /**
  * AdController
  *
- * Handles HTTP requests for the Ads module (advertiser-facing and
- * public serve/track endpoints). Kept thin: validate input, call a
- * repository method, return a response.
+ * Handles HTTP requests for the Ads module (advertiser-facing,
+ * admin-edit, and public serve/track endpoints). Kept thin: validate
+ * input, call a repository method, return a response.
  */
 use Core\Response;
 use Core\Request;
@@ -344,6 +344,109 @@ class AdController
         }
 
         Response::success([]);
+    }
+
+    /**
+     * GET /api/v1/admin/ads/{id}
+     * Admin-only. Backs the "Edit Ad" form when opened from the
+     * moderation table — findById() is unscoped by owner, since an
+     * admin edits any advertiser's ad, not just their own.
+     */
+    public function adminShow(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findById($adId);
+
+        if ($ad === null) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['ad' => $ad]);
+    }
+
+    /**
+     * PATCH /api/v1/admin/ads/{id}
+     * Admin-only. Same validatedAdInput() as the advertiser's update(),
+     * but updateById() is unscoped by owner and leaves `status`
+     * untouched — see updateById()'s docblock for why.
+     */
+    public function adminUpdate(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $data = $this->validatedAdInput(requireAppPlacement: false);
+        if ($data === null) {
+            return;
+        }
+
+        $updated = $this->ads->updateById($adId, $data);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/admin/ads/{id}/image
+     * Admin-only. Same split-from-PATCH reasoning as the advertiser's
+     * updateImage(); updateImageById() is unscoped by owner.
+     */
+    public function adminUpdateImage(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
+            Response::error(['code' => 'validation_error', 'message' => 'An image file is required.']);
+            return;
+        }
+
+        try {
+            $imagePath = Uploads::storeAdImage($_FILES['image']);
+        } catch (\RuntimeException $e) {
+            Response::error(['code' => 'invalid_image', 'message' => $e->getMessage()]);
+            return;
+        }
+
+        $updated = $this->ads->updateImageById($adId, $imagePath);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['image_path' => $imagePath]);
     }
 
     /**

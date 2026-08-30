@@ -52,6 +52,25 @@ class AppController
     }
 
     /**
+     * GET /api/v1/admin/apps/for-ad-form
+     * Admin-only. Same apps+placements shape as forAdvertiser() above
+     * — needed so create-ad.php's shared edit form can resolve an
+     * ad's app_id/placement_id into display names when an admin opens
+     * it from the moderation table, same as it does for the
+     * advertiser who originally submitted the ad. index() above
+     * returns a different shape (counts, for the admin Connected Apps
+     * table) with no placements in it at all.
+     */
+    public function forAdminAdForm(): void
+    {
+        if (Middleware::requireRole(['admin']) === null) {
+            return;
+        }
+
+        Response::success(['apps' => $this->apps->allActiveWithPlacements()]);
+    }
+
+    /**
      * POST /api/v1/admin/apps
      * Registers a connected app and issues its first API key (6.d),
      * stored as a hash (6.e). The plaintext key is returned exactly
