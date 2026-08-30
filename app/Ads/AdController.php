@@ -69,6 +69,18 @@ class AdController
         if ($ad === null) {
             $ad = $this->ads->findServableForPlacement($appId, $placementCode);
 
+            // AdRepository returns the bare filename as stored by
+            // core/Uploads.php (e.g. "abc123.jpg") — resolve it here
+            // into the actual public path so consuming apps can turn
+            // it into a real URL without knowing our storage layout.
+            // Images live under public/uploads/ads/ and are served
+            // directly from there (public/.htaccess); the documented
+            // /images/ads/{filename} route doesn't actually work, since
+            // its {filename} segment is never bound by the router.
+            if ($ad !== null && $ad['image_path']) {
+                $ad['image_path'] = 'uploads/ads/' . $ad['image_path'];
+            }
+
             // 7.d — short TTL: long enough to absorb a traffic burst on a
             // popular placement, short enough that a newly-approved or
             // newly-expired ad shows up within a few seconds, not minutes.
