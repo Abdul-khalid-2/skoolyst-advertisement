@@ -90,7 +90,7 @@ function db_ad_row_to_display(array $row): array
     return [
         'id' => (string) $row['id'],
         'title' => $row['title'],
-        'image' => $row['image_path'] ? 'images/ads/' . $row['image_path'] : 'assets/img/ad-1.svg',
+        'image' => $row['image_path'] ? 'uploads/ads/' . $row['image_path'] : 'assets/img/ad-1.svg',
         'status' => $row['status'],
         'impressions' => (int) $row['impressions'],
         'clicks' => (int) $row['clicks'],

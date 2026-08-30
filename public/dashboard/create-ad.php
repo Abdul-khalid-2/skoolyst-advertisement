@@ -338,7 +338,7 @@ $pageScript = <<<JS
     document.getElementById('f-desc').dispatchEvent(new Event('input'));
 
     if (editingAd.image_path) {
-      currentImageSrc = '{$baseHref}images/ads/' + editingAd.image_path;
+      currentImageSrc = '{$baseHref}uploads/ads/' + editingAd.image_path;
       const drop = document.getElementById('file-drop');
       drop.classList.add('has-image');
       drop.innerHTML = '<img src="' + currentImageSrc + '" alt="">';
