@@ -23,7 +23,16 @@ if (!empty($jsMockData['ads'])) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <?= csrf_field('_csrf-logout') ?>
 <script>window.SkoolystAdsMockData = <?= json_encode($jsMockData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
-<script src="<?= $baseHref ?>assets/js/dashboard.js"></script>
+<?php
+// Cache-bust on file content changes: appending the file's mtime as a
+// query string forces browsers/CDNs/hosting-level static caches to fetch
+// a fresh copy whenever dashboard.js is deployed, instead of silently
+// serving a stale cached version that may be missing newer functions
+// (e.g. wireEditLinks) while the PHP calling it has already been updated.
+$dashboardJsPath = __DIR__ . '/../../public/assets/js/dashboard.js';
+$dashboardJsVer  = file_exists($dashboardJsPath) ? filemtime($dashboardJsPath) : time();
+?>
+<script src="<?= $baseHref ?>assets/js/dashboard.js?v=<?= $dashboardJsVer ?>"></script>
 <?php if ($pageScript !== ''): ?>
 <script>
 <?= $pageScript ?>

@@ -78,9 +78,11 @@ class AdRepository
      * the queue needs to know who submitted each ad, an advertiser
      * viewing their own list already does.
      *
-     * $status === null drops the WHERE clause entirely — backs
-     * admin/ads.php's "All" tab, which countsByStatus()'s own `all`
-     * key already counts but has no single status value of its own.
+     * $status === null drops the status filter down to "not deleted"
+     * — backs admin/ads.php's "All" tab, which countsByStatus()'s own
+     * `all` key already counts (also excluding 'deleted') but has no
+     * single status value of its own. An explicit ?status=deleted
+     * still works via the exact-match branch below, if ever needed.
      *
      * ORDER BY carries `ads.id` as a tiebreaker after `created_at`
      * (13.d finding): `created_at` alone is only second-precision, so
@@ -97,7 +99,7 @@ class AdRepository
     {
         $perPage = max(1, min($perPage, 100));
         $offset = max(0, ($page - 1) * $perPage);
-        $where = $status === null ? '' : 'WHERE ads.status = :status';
+        $where = $status === null ? "WHERE ads.status != 'deleted'" : 'WHERE ads.status = :status';
 
         return Database::query(
             <<<SQL
@@ -138,7 +140,7 @@ class AdRepository
     {
         $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
 
-        $rows = Database::query('SELECT status, COUNT(*) AS total FROM ads GROUP BY status')->fetchAll();
+        $rows = Database::query("SELECT status, COUNT(*) AS total FROM ads WHERE status != 'deleted' GROUP BY status")->fetchAll();
 
         foreach ($rows as $row) {
             $counts[$row['status']] = (int) $row['total'];
@@ -146,6 +148,87 @@ class AdRepository
         }
 
         return $counts;
+    }
+
+    /**
+     * Platform-wide "Top Performing Ads" widget (admin overview,
+     * public/admin/index.php) — same joins/shape as findByStatus()
+     * above (so its rows drop straight into db_ad_row_to_display()),
+     * ordered by lifetime clicks instead of paginated by status.
+     * Excludes soft-deleted ads, same as findByStatus(null, ...).
+     * Ties (e.g. several ads with 0 clicks) fall back to newest first
+     * so the widget doesn't surface stale drafts ahead of real ones.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findTopByClicks(int $limit = 5): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        return Database::query(
+            <<<SQL
+                SELECT
+                    ads.id, ads.title, ads.image_path, ads.status,
+                    ads.start_date, ads.end_date, ads.app_id,
+                    users.name AS advertiser_name,
+                    apps.name AS app_name,
+                    placements.label AS placement_label,
+                    COALESCE(stats.impressions, 0) AS impressions,
+                    COALESCE(stats.clicks, 0) AS clicks
+                FROM ads
+                INNER JOIN users ON users.id = ads.user_id
+                INNER JOIN apps ON apps.id = ads.app_id
+                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+                    FROM ad_stats_daily
+                    GROUP BY ad_id
+                ) stats ON stats.ad_id = ads.id
+                WHERE ads.status != 'deleted'
+                ORDER BY clicks DESC, ads.created_at DESC, ads.id DESC
+                LIMIT {$limit}
+            SQL
+        )->fetchAll();
+    }
+
+    /**
+     * "Needs Attention" widget (admin overview) — ads currently
+     * pending or rejected, oldest first so the ones that have been
+     * waiting longest for a decision surface at the top. Kept as its
+     * own lightweight query (no stats join) since the widget only
+     * ever shows title/advertiser/status, not impressions or clicks.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findNeedsAttention(int $limit = 5): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        return Database::query(
+            <<<SQL
+                SELECT ads.id, ads.title, ads.image_path, ads.status, ads.created_at,
+                    users.name AS advertiser_name
+                FROM ads
+                INNER JOIN users ON users.id = ads.user_id
+                WHERE ads.status IN ('pending', 'rejected')
+                ORDER BY ads.created_at ASC
+                LIMIT {$limit}
+            SQL
+        )->fetchAll();
+    }
+
+    /**
+     * Backs the "Pending Review" stat card's sub-label — how long the
+     * oldest still-pending ad has been waiting, computed from a real
+     * column (`created_at`) rather than a fabricated "Avg. review
+     * time" figure the schema has no data to support (no
+     * moderated_at/updated_at column exists on `ads`).
+     */
+    public function oldestPendingCreatedAt(): ?string
+    {
+        $row = Database::fetchOne("SELECT MIN(created_at) AS oldest FROM ads WHERE status = 'pending'");
+
+        return $row['oldest'] ?? null;
     }
 
     /**
@@ -219,7 +302,7 @@ class AdRepository
                     FROM ad_stats_daily
                     GROUP BY ad_id
                 ) stats ON stats.ad_id = ads.id
-                WHERE ads.user_id = :user_id
+                WHERE ads.user_id = :user_id AND ads.status != 'deleted'
                 ORDER BY ads.created_at DESC, ads.id DESC
                 LIMIT {$perPage} OFFSET {$offset}
             SQL,
@@ -230,12 +313,14 @@ class AdRepository
     /**
      * Total row count behind findAllForUser() — my-ads.php (10.g) needs
      * this to render "Page X of Y" against the real total, not just
-     * whether the current page happens to be full.
+     * whether the current page happens to be full. Excludes
+     * soft-deleted ads, same as findAllForUser() itself, so the page
+     * count never accounts for rows the advertiser can no longer see.
      */
     public function countForUser(int $userId): int
     {
         $row = Database::fetchOne(
-            'SELECT COUNT(*) AS total FROM ads WHERE user_id = :user_id',
+            "SELECT COUNT(*) AS total FROM ads WHERE user_id = :user_id AND status != 'deleted'",
             ['user_id' => $userId]
         );
 
@@ -256,7 +341,7 @@ class AdRepository
         $counts = ['all' => 0, 'draft' => 0, 'pending' => 0, 'active' => 0, 'paused' => 0, 'rejected' => 0, 'ended' => 0];
 
         $rows = Database::query(
-            'SELECT status, COUNT(*) AS total FROM ads WHERE user_id = :user_id GROUP BY status',
+            "SELECT status, COUNT(*) AS total FROM ads WHERE user_id = :user_id AND status != 'deleted' GROUP BY status",
             ['user_id' => $userId]
         )->fetchAll();
 
@@ -290,7 +375,7 @@ class AdRepository
             <<<SQL
                 SELECT id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date
                 FROM ads
-                WHERE id = :id AND user_id = :user_id
+                WHERE id = :id AND user_id = :user_id AND status != 'deleted'
                 LIMIT 1
             SQL,
             ['id' => $adId, 'user_id' => $userId]
@@ -385,5 +470,156 @@ class AdRepository
         );
 
         return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Admin-side counterpart to findForUser() — same field list (the
+     * edit form needs it regardless of who's loading it), but no
+     * `user_id` filter: an admin edits any advertiser's ad, not just
+     * their own. Ownership scoping isn't relevant here because the
+     * caller (AdController::adminShow()) already gated on the admin
+     * role, not on owning the row.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findById(int $adId): ?array
+    {
+        return Database::fetchOne(
+            <<<SQL
+                SELECT id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date
+                FROM ads
+                WHERE id = :id
+                LIMIT 1
+            SQL,
+            ['id' => $adId]
+        );
+    }
+
+    /**
+     * Admin-side counterpart to updateForUser() — no `user_id` filter,
+     * and deliberately does NOT reset `status` to 'pending' the way
+     * updateForUser() does. That reset exists to send an advertiser's
+     * edit back through moderation; an admin editing an ad *is* the
+     * moderator, so their edit shouldn't pull an already-live ad out
+     * of rotation or bump a paused/rejected ad's status on its own.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateById(int $adId, array $data): bool
+    {
+        $statement = Database::query(
+            <<<SQL
+                UPDATE ads SET
+                    advertiser_name = :advertiser_name,
+                    title = :title,
+                    description = :description,
+                    cta_text = :cta_text,
+                    click_url = :click_url,
+                    start_date = :start_date,
+                    end_date = :end_date
+                WHERE id = :id
+            SQL,
+            [
+                'id' => $adId,
+                'advertiser_name' => $data['advertiser_name'],
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'cta_text' => $data['cta_text'],
+                'click_url' => $data['click_url'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+            ]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Admin-side counterpart to updateImageForUser() — no `user_id`
+     * filter, same reasoning as updateById() above.
+     */
+    public function updateImageById(int $adId, string $imagePath): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET image_path = :image_path WHERE id = :id',
+            ['id' => $adId, 'image_path' => $imagePath]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Advertiser-side Pause/Activate (10.n follow-up) — same idea as
+     * updateStatus() (admin approve/reject), but scoped to a row the
+     * requesting advertiser actually owns, same ownership guarantee
+     * as updateForUser()/updateImageForUser() above. Only ever called
+     * with 'paused' or 'active' from AdController — an advertiser
+     * can't set 'pending'/'rejected'/etc. through this path.
+     */
+    public function updateStatusForUser(int $adId, int $userId, string $status): bool
+    {
+        $statement = Database::query(
+            'UPDATE ads SET status = :status WHERE id = :id AND user_id = :user_id',
+            ['id' => $adId, 'user_id' => $userId, 'status' => $status]
+        );
+
+        return $statement->rowCount() > 0;
+    }
+
+    /**
+     * Advertiser-side Delete (10.n follow-up, later switched to soft
+     * delete). Ownership guarantee via the WHERE clause, same pattern
+     * as every other *ForUser() method here. A status flip to
+     * 'deleted' rather than a hard DELETE — preserves ad_stats_daily/
+     * ad_impressions/ad_clicks history instead of losing it to their
+     * ON DELETE CASCADE, and means a mistaken delete isn't
+     * unrecoverable. Every list/count query in this class excludes
+     * 'deleted' explicitly, so the ad still disappears from the
+     * advertiser's and admin's normal views exactly as it did under
+     * the old hard delete.
+     *
+     * Existence is checked separately rather than trusting
+     * rowCount() > 0 on the UPDATE itself — same reasoning as
+     * updateStatus() above: re-deleting an already-'deleted' ad would
+     * change no columns, so MySQL reports 0 rows affected even though
+     * the row (still) matches, which would otherwise read as "not
+     * found" for an ad that's actually just already deleted.
+     */
+    public function deleteForUser(int $adId, int $userId): bool
+    {
+        if (Database::fetchOne('SELECT id FROM ads WHERE id = :id AND user_id = :user_id', ['id' => $adId, 'user_id' => $userId]) === null) {
+            return false;
+        }
+
+        Database::query(
+            "UPDATE ads SET status = 'deleted' WHERE id = :id AND user_id = :user_id",
+            ['id' => $adId, 'user_id' => $userId]
+        );
+
+        return true;
+    }
+
+    /**
+     * Admin-side counterpart to deleteForUser() — no `user_id` filter,
+     * same reasoning as updateById()/updateImageById() above (an
+     * admin manages every advertiser's ads, not just their own). Same
+     * soft-delete behaviour (status flips to 'deleted', row is kept
+     * for ad_stats_daily/ad_impressions/ad_clicks history) and the
+     * same existence-checked-separately pattern as deleteForUser(),
+     * so re-deleting an already-'deleted' ad still reports success
+     * instead of a false "not found".
+     */
+    public function deleteById(int $adId): bool
+    {
+        if (Database::fetchOne('SELECT id FROM ads WHERE id = :id', ['id' => $adId]) === null) {
+            return false;
+        }
+
+        Database::query(
+            "UPDATE ads SET status = 'deleted' WHERE id = :id",
+            ['id' => $adId]
+        );
+
+        return true;
     }
 }

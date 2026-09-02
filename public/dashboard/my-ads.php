@@ -49,6 +49,7 @@ $allAdsRows = ads_table_rows($rows, [], $baseHref, false, false);
 
 ob_start();
 ?>
+<?= csrf_field() ?>
 <div class="db-page-head">
   <div>
     <h1>My Ads</h1>
@@ -124,9 +125,65 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   // 10.n — Edit button on these real, server-rendered rows was
   // previously dead (filterRenderedRows() only shows/hides rows, it
-  // never wires their action buttons). Pause/Activate/Delete on this
-  // same table are still unwired — tracked separately.
+  // never wires their action buttons).
   SkoolystAdsUI.wireEditLinks('ads-table-body');
+
+  // 10.n follow-up — Pause/Activate/Delete were the last unwired
+  // buttons on this real, server-rendered table. Same approach as
+  // admin/ads.php's approve/reject wiring: call the real advertiser
+  // API, then reload on success so pagination/filters/status counts
+  // all reflect the change, rather than hand-patching the DOM.
+  var csrfToken = document.getElementById('_csrf').value;
+  var tbody = document.getElementById('ads-table-body');
+
+  tbody.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.dataset.action;
+    if (action !== 'pause' && action !== 'activate' && action !== 'delete') return;
+
+    var tr = btn.closest('tr');
+    var adId = tr.dataset.adId;
+    var title = tr.querySelector('.db-table__title').textContent;
+
+    if (action === 'delete') {
+      if (!window.confirm('Delete "' + title + '"? This cannot be undone.')) return;
+    }
+
+    var endpoint = 'api/v1/advertiser/ads/' + encodeURIComponent(adId) + (action === 'delete' ? '' : '/' + action);
+    var buttons = tr.querySelectorAll('[data-action]');
+    buttons.forEach(function (b) { b.disabled = true; });
+
+    fetch('../' + endpoint, {
+      method: action === 'delete' ? 'DELETE' : 'PATCH',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
+      body: JSON.stringify({ ad_id: adId }),
+    })
+      .then(function (res) {
+        return res.json().then(function (json) { return { ok: res.ok, json: json }; });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.json.success) {
+          var message = (result.json.error && result.json.error.message) || 'Could not update this ad.';
+          showToast(message, 'error');
+          buttons.forEach(function (b) { b.disabled = false; });
+          return;
+        }
+        var successMessage = action === 'pause' ? 'Ad paused.'
+          : action === 'activate' ? 'Ad activated.'
+          : 'Ad deleted.';
+        showToast(successMessage, 'success');
+        window.setTimeout(function () { window.location.reload(); }, 700);
+      })
+      .catch(function () {
+        showToast('Network error — please try again.', 'error');
+        buttons.forEach(function (b) { b.disabled = false; });
+      });
+  });
 });
 JS;
 

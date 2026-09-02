@@ -100,4 +100,69 @@ class ModerationController
 
         Response::success([]);
     }
+
+    /**
+     * PATCH /api/v1/admin/ads/{id}/pause
+     * Admin counterpart to the advertiser's pause() (AdController) —
+     * unscoped by owner via the same updateStatus() approve/reject
+     * already use above, since an admin can pause any advertiser's ad,
+     * not just their own. No fromStatus check (unlike the advertiser
+     * path): an admin already has unrestricted delete/edit here, so
+     * pausing from any status is treated the same way.
+     */
+    public function pause(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->updateStatus($adId, 'paused')) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        AuditLog::write($adminId, 'ad.pause', 'ad', $adId);
+
+        Response::success([]);
+    }
+
+    /**
+     * PATCH /api/v1/admin/ads/{id}/activate
+     * Admin counterpart to the advertiser's activate() (AdController).
+     * Unlike the advertiser path, this also accepts a 'draft' ad —
+     * the moderation table's Activate button (views/components/ads-
+     * table.php) is shown for both 'paused' and 'draft' rows, and an
+     * admin activating an ad directly *is* the moderation decision,
+     * same reasoning as updateById() leaving status untouched on plain
+     * edits.
+     */
+    public function activate(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->updateStatus($adId, 'active')) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        AuditLog::write($adminId, 'ad.activate', 'ad', $adId);
+
+        Response::success([]);
+    }
 }

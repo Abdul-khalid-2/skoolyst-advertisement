@@ -64,4 +64,51 @@ return [
         'auth' => true,
         'handler' => [AdController::class, 'updateImage'],
     ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/advertiser/ads/{id}/pause',
+        'auth' => true,
+        'handler' => [AdController::class, 'pause'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/advertiser/ads/{id}/activate',
+        'auth' => true,
+        'handler' => [AdController::class, 'activate'],
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/advertiser/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'destroy'],
+    ],
+    // Admin edit endpoints (`/admin/` path, but still AdController —
+    // ModerationController in app/Admin/ only ever handled
+    // approve/reject; full edit is Ads-domain logic just like the
+    // advertiser routes above, so it stays here rather than pulling
+    // AdController into the Admin module).
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/admin/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'adminShow'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'adminUpdate'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/admin/ads/{id}/image',
+        'auth' => true,
+        'handler' => [AdController::class, 'adminUpdateImage'],
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/admin/ads/{id}',
+        'auth' => true,
+        'handler' => [AdController::class, 'adminDestroy'],
+    ],
 ];

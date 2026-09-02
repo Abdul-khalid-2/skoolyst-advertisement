@@ -25,6 +25,12 @@ return [
         'handler' => [AppController::class, 'index'],
     ],
     [
+        'method' => 'GET',
+        'path' => '/api/v1/admin/apps/for-ad-form',
+        'auth' => true,
+        'handler' => [AppController::class, 'forAdminAdForm'],
+    ],
+    [
         'method' => 'POST',
         'path' => '/api/v1/admin/apps',
         'auth' => true,

@@ -5,9 +5,9 @@ namespace App\Ads;
 /**
  * AdController
  *
- * Handles HTTP requests for the Ads module (advertiser-facing and
- * public serve/track endpoints). Kept thin: validate input, call a
- * repository method, return a response.
+ * Handles HTTP requests for the Ads module (advertiser-facing,
+ * admin-edit, and public serve/track endpoints). Kept thin: validate
+ * input, call a repository method, return a response.
  */
 use Core\Response;
 use Core\Request;
@@ -68,6 +68,18 @@ class AdController
 
         if ($ad === null) {
             $ad = $this->ads->findServableForPlacement($appId, $placementCode);
+
+            // AdRepository returns the bare filename as stored by
+            // core/Uploads.php (e.g. "abc123.jpg") — resolve it here
+            // into the actual public path so consuming apps can turn
+            // it into a real URL without knowing our storage layout.
+            // Images live under public/uploads/ads/ and are served
+            // directly from there (public/.htaccess); the documented
+            // /images/ads/{filename} route doesn't actually work, since
+            // its {filename} segment is never bound by the router.
+            if ($ad !== null && $ad['image_path']) {
+                $ad['image_path'] = 'uploads/ads/' . $ad['image_path'];
+            }
 
             // 7.d — short TTL: long enough to absorb a traffic burst on a
             // popular placement, short enough that a newly-approved or
@@ -254,6 +266,228 @@ class AdController
         }
 
         Response::success(['image_path' => $imagePath]);
+    }
+
+    /**
+     * PATCH /api/v1/advertiser/ads/{id}/pause
+     * Advertiser-only (6.g). Only an already-'active' ad can be
+     * paused — an advertiser flipping a 'pending'/'rejected'/'draft'
+     * ad straight to 'paused' would let it skip moderation entirely,
+     * so that's rejected as a validation error rather than silently
+     * allowed or 404'd.
+     */
+    public function pause(): void
+    {
+        $this->setStatusForUser('active', 'paused', 'This ad can\'t be paused from its current status.');
+    }
+
+    /**
+     * PATCH /api/v1/advertiser/ads/{id}/activate
+     * Advertiser-only (6.g). Only a previously-'paused' ad can be
+     * reactivated this way — re-activating a 'draft' still has to go
+     * through update()/moderation like any new ad (it's never been
+     * approved), so 'draft' is deliberately not accepted here.
+     */
+    public function activate(): void
+    {
+        $this->setStatusForUser('paused', 'active', 'This ad can\'t be activated from its current status.');
+    }
+
+    /**
+     * Shared body for pause()/activate() — both are a single allowed
+     * status transition, scoped to the requesting advertiser's own
+     * ad. updateStatusForUser()'s WHERE clause already enforces
+     * ownership; the extra findForUser() lookup here exists only to
+     * tell "wrong current status" (422) apart from "no such ad, or
+     * not yours" (404), which a single UPDATE's rowCount() can't
+     * distinguish on its own.
+     */
+    private function setStatusForUser(string $fromStatus, string $toStatus, string $wrongStatusMessage): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findForUser($adId, $userId);
+        if ($ad === null) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        if ($ad['status'] !== $fromStatus) {
+            Response::error(['code' => 'validation_error', 'message' => $wrongStatusMessage]);
+            return;
+        }
+
+        $this->ads->updateStatusForUser($adId, $userId, $toStatus);
+
+        Response::success([]);
+    }
+
+    /**
+     * DELETE /api/v1/advertiser/ads/{id}
+     * Advertiser-only (6.g). Soft delete — deleteForUser() flips the
+     * ad's status to 'deleted' rather than removing the row (see that
+     * method for why), scoped to $userId same as every other
+     * advertiser-facing method here.
+     */
+    public function destroy(): void
+    {
+        $userId = Middleware::requireRole(['advertiser']);
+        if ($userId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->deleteForUser($adId, $userId)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
+    }
+
+    /**
+     * GET /api/v1/admin/ads/{id}
+     * Admin-only. Backs the "Edit Ad" form when opened from the
+     * moderation table — findById() is unscoped by owner, since an
+     * admin edits any advertiser's ad, not just their own.
+     */
+    public function adminShow(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $ad = $this->ads->findById($adId);
+
+        if ($ad === null) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['ad' => $ad]);
+    }
+
+    /**
+     * PATCH /api/v1/admin/ads/{id}
+     * Admin-only. Same validatedAdInput() as the advertiser's update(),
+     * but updateById() is unscoped by owner and leaves `status`
+     * untouched — see updateById()'s docblock for why.
+     */
+    public function adminUpdate(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        $data = $this->validatedAdInput(requireAppPlacement: false);
+        if ($data === null) {
+            return;
+        }
+
+        $updated = $this->ads->updateById($adId, $data);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
+    }
+
+    /**
+     * POST /api/v1/admin/ads/{id}/image
+     * Admin-only. Same split-from-PATCH reasoning as the advertiser's
+     * updateImage(); updateImageById() is unscoped by owner.
+     */
+    public function adminUpdateImage(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
+            Response::error(['code' => 'validation_error', 'message' => 'An image file is required.']);
+            return;
+        }
+
+        try {
+            $imagePath = Uploads::storeAdImage($_FILES['image']);
+        } catch (\RuntimeException $e) {
+            Response::error(['code' => 'invalid_image', 'message' => $e->getMessage()]);
+            return;
+        }
+
+        $updated = $this->ads->updateImageById($adId, $imagePath);
+
+        if (!$updated) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success(['image_path' => $imagePath]);
+    }
+
+    /**
+     * DELETE /api/v1/admin/ads/{id}
+     * Admin-only counterpart to the advertiser's destroy() — same
+     * soft-delete behaviour (deleteById() flips status to 'deleted'
+     * rather than removing the row), but unscoped by owner since an
+     * admin deletes any advertiser's ad, not just their own.
+     */
+    public function adminDestroy(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $adId = Request::int('ad_id');
+        if ($adId === null) {
+            Response::error(['code' => 'validation_error', 'message' => 'ad_id is required.']);
+            return;
+        }
+
+        if (!$this->ads->deleteById($adId)) {
+            Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
+            return;
+        }
+
+        Response::success([]);
     }
 
     /**

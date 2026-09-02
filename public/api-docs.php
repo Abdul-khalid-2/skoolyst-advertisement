@@ -112,14 +112,14 @@ $ad = json_decode($response, true)['data']['ad']; // null if nothing is eligible
       <span class="tok-key">"id"</span>: <span class="tok-str">1002</span>,
       <span class="tok-key">"title"</span>: <span class="tok-str">"Speak Confidently in 8 Weeks"</span>,
       <span class="tok-key">"description"</span>: <span class="tok-str">"Small-group spoken English classes with weekend batches."</span>,
-      <span class="tok-key">"image_path"</span>: <span class="tok-str">"/images/ads/3f1c9e2a...b7.jpg"</span>,
+      <span class="tok-key">"image_path"</span>: <span class="tok-str">"uploads/ads/3f1c9e2a...b7.jpg"</span>,
       <span class="tok-key">"cta_text"</span>: <span class="tok-str">"Book a Seat"</span>,
       <span class="tok-key">"click_url"</span>: <span class="tok-str">"https://fluentenglish.example.com/enroll"</span>
     }
   }
 }</code></pre>
       </div>
-      <p class="muted"><code>data.ad</code> is <code>null</code> when no active ad matches the placement — check for that before rendering. <code>image_path</code> is relative; resolve it against this API's own host (served by <code>GET /images/ads/{filename}</code>). <code>click_url</code> is the advertiser's real destination as entered when the ad was created — AdEngine does not rewrite it into a tracking link and does not log clicks automatically. Send the visitor there yourself, and call <a href="#track-click">Track a Click</a> at the same time so it's counted.</p>
+      <p class="muted"><code>data.ad</code> is <code>null</code> when no active ad matches the placement — check for that before rendering. <code>image_path</code> is relative; resolve it against this API's own host (e.g. <code>https://ads.skoolyst.com/</code> + <code>image_path</code>) — served as a static file, not through a JSON endpoint. <code>click_url</code> is the advertiser's real destination as entered when the ad was created — AdEngine does not rewrite it into a tracking link and does not log clicks automatically. Send the visitor there yourself, and call <a href="#track-click">Track a Click</a> at the same time so it's counted.</p>
     </section>
 
     <section class="db-doc-section" id="track-impression">

@@ -3,6 +3,7 @@ require __DIR__ . '/../../core/Autoload.php';
 require __DIR__ . '/../../core/Env.php';
 require __DIR__ . '/../../views/bootstrap.php';
 
+use App\Auth\UserRepository;
 use Core\Auth\Middleware;
 
 Core\Env::load(__DIR__ . '/../../.env');
@@ -16,14 +17,32 @@ if ($userId === null) {
     exit;
 }
 
+// This page is now also how an admin edits any ad from the
+// moderation table (see admin/ads.php's edit button) — the form,
+// preview, and validation are all identical, only which API
+// endpoints get called (advertiser-owned vs admin-unscoped) and
+// where Cancel/success navigate back to differ. An admin with no
+// `edit` id has no supported reason to be here (admin ad *creation*
+// isn't a thing) — bounce straight back to the moderation queue.
+$currentUser = (new UserRepository())->findById($userId);
+$isAdmin = $currentUser !== null && $currentUser->isAdmin();
+
+if ($isAdmin && !isset($_GET['edit'])) {
+    header('Location: ../admin/ads.php');
+    exit;
+}
+
+$backHref  = $isAdmin ? '../admin/ads.php' : 'my-ads.php';
+$backLabel = $isAdmin ? 'All Ads' : 'My Ads';
+
 $pageTitle  = 'Create Ad';
-$role       = 'advertiser';
-$activeNav  = 'create-ad';
+$role       = $isAdmin ? 'admin' : 'advertiser';
+$activeNav  = $isAdmin ? 'admin-ads' : 'create-ad';
 $baseHref   = '../';
 $showSearch = false;
 
-$topbarActions = '<a href="my-ads.php" class="btn btn-sk-outline btn-sm">Cancel</a>';
-$topbarCrumb   = '<a href="my-ads.php" class="text-muted">My Ads</a> / <span id="page-crumb">New</span>';
+$topbarActions = '<a href="' . $backHref . '" class="btn btn-sk-outline btn-sm">Cancel</a>';
+$topbarCrumb   = '<a href="' . $backHref . '" class="text-muted">' . $backLabel . '</a> / <span id="page-crumb">New</span>';
 
 ob_start();
 ?>
@@ -167,9 +186,21 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
+$jsIsAdmin = $isAdmin ? 'true' : 'false';
+
 $pageScript = <<<JS
 (function () {
   'use strict';
+
+  // 10.n admin-edit follow-up — an admin opening this page from
+  // admin/ads.php hits the unscoped /api/v1/admin/ads/... endpoints
+  // (AdController::adminShow()/adminUpdate()/adminUpdateImage())
+  // instead of the ownership-scoped /api/v1/advertiser/ads/...
+  // ones, since the logged-in admin doesn't own the ad being edited.
+  // backHref matches \$backHref in the PHP above (My Ads vs the
+  // moderation queue) for every redirect below.
+  const isAdmin = {$jsIsAdmin};
+  const backHref = '{$backHref}';
 
   // Real apps/placements (10.f), fetched from the DB-backed
   // /api/v1/advertiser/apps endpoint instead of data/mock-data.php's
@@ -236,8 +267,11 @@ $pageScript = <<<JS
 
   // Real apps/placements are needed either way: a new ad's Step 2
   // picker, or (edit mode) to resolve the ad's stored app_id/
-  // placement_id into the names shown in that same step.
-  fetch('{$baseHref}api/v1/advertiser/apps', { credentials: 'same-origin' })
+  // placement_id into the names shown in that same step. Admins hit
+  // a separate admin-only endpoint returning the same apps+placements
+  // shape (AppController::index(), the admin Connected Apps listing,
+  // doesn't include placements at all).
+  fetch('{$baseHref}api/v1/' + (isAdmin ? 'admin/apps/for-ad-form' : 'advertiser/apps'), { credentials: 'same-origin' })
     .then(function (res) { return res.json(); })
     .then(function (json) {
       if (!json.success) {
@@ -262,15 +296,16 @@ $pageScript = <<<JS
   // (see routePathToRegex()'s doc-block in public/index.php); the
   // real value has to travel as a field Request::int() actually reads.
   function loadEditingAd() {
-    const url = '{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editId) + '?ad_id=' + encodeURIComponent(editId);
+    const endpointBase = isAdmin ? 'admin/ads/' : 'advertiser/ads/';
+    const url = '{$baseHref}api/v1/' + endpointBase + encodeURIComponent(editId) + '?ad_id=' + encodeURIComponent(editId);
     fetch(url, { credentials: 'same-origin' })
       .then(function (res) {
         return res.json().then(function (json) { return { ok: res.ok, json: json }; });
       })
       .then(function (result) {
         if (!result.ok || !result.json.success) {
-          showToast('Could not load this ad — it may not exist or belong to your account.', 'error');
-          window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 1200);
+          showToast('Could not load this ad — it may not exist' + (isAdmin ? '.' : ' or belong to your account.'), 'error');
+          window.setTimeout(function () { window.location.href = backHref; }, 1200);
           return;
         }
         editingAd = result.json.data.ad;
@@ -303,7 +338,7 @@ $pageScript = <<<JS
     document.getElementById('f-desc').dispatchEvent(new Event('input'));
 
     if (editingAd.image_path) {
-      currentImageSrc = '{$baseHref}images/ads/' + editingAd.image_path;
+      currentImageSrc = '{$baseHref}uploads/ads/' + editingAd.image_path;
       const drop = document.getElementById('file-drop');
       drop.classList.add('has-image');
       drop.innerHTML = '<img src="' + currentImageSrc + '" alt="">';
@@ -479,7 +514,7 @@ $pageScript = <<<JS
 
   function finishEditSave() {
     showToast('Changes saved.', 'success');
-    window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+    window.setTimeout(function () { window.location.href = backHref; }, 900);
   }
 
   // 10.n — real edit save: PATCH the text fields as JSON (this is
@@ -506,7 +541,9 @@ $pageScript = <<<JS
 
     setSavingState(true);
 
-    fetch('{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editingAd.id), {
+    const endpointBase = isAdmin ? 'admin/ads/' : 'advertiser/ads/';
+
+    fetch('{$baseHref}api/v1/' + endpointBase + encodeURIComponent(editingAd.id), {
       method: 'PATCH',
       credentials: 'same-origin',
       headers: {
@@ -536,7 +573,7 @@ $pageScript = <<<JS
         imageForm.append('ad_id', editingAd.id);
         imageForm.append('image', newImageFile);
 
-        fetch('{$baseHref}api/v1/advertiser/ads/' + encodeURIComponent(editingAd.id) + '/image', {
+        fetch('{$baseHref}api/v1/' + endpointBase + encodeURIComponent(editingAd.id) + '/image', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'X-CSRF-Token': document.getElementById('_csrf').value },
