@@ -151,6 +151,87 @@ class AdRepository
     }
 
     /**
+     * Platform-wide "Top Performing Ads" widget (admin overview,
+     * public/admin/index.php) — same joins/shape as findByStatus()
+     * above (so its rows drop straight into db_ad_row_to_display()),
+     * ordered by lifetime clicks instead of paginated by status.
+     * Excludes soft-deleted ads, same as findByStatus(null, ...).
+     * Ties (e.g. several ads with 0 clicks) fall back to newest first
+     * so the widget doesn't surface stale drafts ahead of real ones.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findTopByClicks(int $limit = 5): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        return Database::query(
+            <<<SQL
+                SELECT
+                    ads.id, ads.title, ads.image_path, ads.status,
+                    ads.start_date, ads.end_date, ads.app_id,
+                    users.name AS advertiser_name,
+                    apps.name AS app_name,
+                    placements.label AS placement_label,
+                    COALESCE(stats.impressions, 0) AS impressions,
+                    COALESCE(stats.clicks, 0) AS clicks
+                FROM ads
+                INNER JOIN users ON users.id = ads.user_id
+                INNER JOIN apps ON apps.id = ads.app_id
+                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+                    FROM ad_stats_daily
+                    GROUP BY ad_id
+                ) stats ON stats.ad_id = ads.id
+                WHERE ads.status != 'deleted'
+                ORDER BY clicks DESC, ads.created_at DESC, ads.id DESC
+                LIMIT {$limit}
+            SQL
+        )->fetchAll();
+    }
+
+    /**
+     * "Needs Attention" widget (admin overview) — ads currently
+     * pending or rejected, oldest first so the ones that have been
+     * waiting longest for a decision surface at the top. Kept as its
+     * own lightweight query (no stats join) since the widget only
+     * ever shows title/advertiser/status, not impressions or clicks.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findNeedsAttention(int $limit = 5): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        return Database::query(
+            <<<SQL
+                SELECT ads.id, ads.title, ads.image_path, ads.status, ads.created_at,
+                    users.name AS advertiser_name
+                FROM ads
+                INNER JOIN users ON users.id = ads.user_id
+                WHERE ads.status IN ('pending', 'rejected')
+                ORDER BY ads.created_at ASC
+                LIMIT {$limit}
+            SQL
+        )->fetchAll();
+    }
+
+    /**
+     * Backs the "Pending Review" stat card's sub-label — how long the
+     * oldest still-pending ad has been waiting, computed from a real
+     * column (`created_at`) rather than a fabricated "Avg. review
+     * time" figure the schema has no data to support (no
+     * moderated_at/updated_at column exists on `ads`).
+     */
+    public function oldestPendingCreatedAt(): ?string
+    {
+        $row = Database::fetchOne("SELECT MIN(created_at) AS oldest FROM ads WHERE status = 'pending'");
+
+        return $row['oldest'] ?? null;
+    }
+
+    /**
      * Admin moderation decision (10.h) — approve/reject both go
      * through this one method, differing only in $status and whether
      * a reason is attached. Returns false if $adId doesn't exist, so

@@ -132,6 +132,37 @@ class AdStatsRepository
     }
 
     /**
+     * Platform-wide counterpart to performanceSummaryForUser() below —
+     * same current-30d-vs-previous-30d shape, but with no `ads.user_id`
+     * filter, since the admin overview (public/admin/index.php) needs
+     * totals across every advertiser, not just one. Reads
+     * `ad_stats_daily` directly (5.3.e) with no join to `ads` needed,
+     * since nothing here is scoped by owner.
+     *
+     * @return array{impressions_current: int, clicks_current: int, impressions_previous: int, clicks_previous: int}
+     */
+    public function performanceSummary(): array
+    {
+        $row = Database::fetchOne(
+            <<<SQL
+                SELECT
+                    COALESCE(SUM(CASE WHEN date >= CURDATE() - INTERVAL 30 DAY THEN impressions ELSE 0 END), 0) AS impressions_current,
+                    COALESCE(SUM(CASE WHEN date >= CURDATE() - INTERVAL 30 DAY THEN clicks ELSE 0 END), 0) AS clicks_current,
+                    COALESCE(SUM(CASE WHEN date < CURDATE() - INTERVAL 30 DAY AND date >= CURDATE() - INTERVAL 60 DAY THEN impressions ELSE 0 END), 0) AS impressions_previous,
+                    COALESCE(SUM(CASE WHEN date < CURDATE() - INTERVAL 30 DAY AND date >= CURDATE() - INTERVAL 60 DAY THEN clicks ELSE 0 END), 0) AS clicks_previous
+                FROM ad_stats_daily
+            SQL
+        );
+
+        return [
+            'impressions_current' => (int) ($row['impressions_current'] ?? 0),
+            'clicks_current' => (int) ($row['clicks_current'] ?? 0),
+            'impressions_previous' => (int) ($row['impressions_previous'] ?? 0),
+            'clicks_previous' => (int) ($row['clicks_previous'] ?? 0),
+        ];
+    }
+
+    /**
      * One-query summary behind the dashboard's "Impressions (30d)",
      * "Clicks (30d)" and "Avg. CTR" stat cards, plus each card's
      * "vs last month" trend (10.m) — the current 30-day window against

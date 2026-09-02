@@ -114,4 +114,69 @@ class AdRepositoryTest extends DatabaseTestCase
         $row = Database::fetchOne('SELECT status FROM ads WHERE id = :id', ['id' => $ad['id']]);
         $this->assertNotSame('deleted', $row['status']);
     }
+
+    /**
+     * Admin overview's "Top Performing Ads" widget (public/admin/index.php)
+     * — verifies findTopByClicks() ranks by lifetime clicks (summed from
+     * ad_stats_daily) regardless of which advertiser owns each ad, and
+     * excludes soft-deleted ads.
+     */
+    public function testFindTopByClicksOrdersByLifetimeClicksDescending(): void
+    {
+        $user = $this->seedUser();
+        $app = $this->seedApp();
+        $placement = $this->seedPlacement($app['app']['id']);
+
+        $low = $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'Low Clicks']);
+        $high = $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'High Clicks']);
+        $deleted = $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'Deleted Ad', 'status' => 'deleted']);
+
+        Database::query(
+            'INSERT INTO ad_stats_daily (ad_id, `date`, impressions, clicks) VALUES (:ad_id, :date, :impressions, :clicks)',
+            ['ad_id' => $low['id'], 'date' => date('Y-m-d'), 'impressions' => 100, 'clicks' => 2]
+        );
+        Database::query(
+            'INSERT INTO ad_stats_daily (ad_id, `date`, impressions, clicks) VALUES (:ad_id, :date, :impressions, :clicks)',
+            ['ad_id' => $high['id'], 'date' => date('Y-m-d'), 'impressions' => 100, 'clicks' => 9]
+        );
+        Database::query(
+            'INSERT INTO ad_stats_daily (ad_id, `date`, impressions, clicks) VALUES (:ad_id, :date, :impressions, :clicks)',
+            ['ad_id' => $deleted['id'], 'date' => date('Y-m-d'), 'impressions' => 100, 'clicks' => 50]
+        );
+
+        $top = (new AdRepository())->findTopByClicks(5);
+
+        $this->assertCount(2, $top, 'Soft-deleted ads must never appear in the top-ads widget.');
+        $this->assertSame('High Clicks', $top[0]['title']);
+        $this->assertSame('Low Clicks', $top[1]['title']);
+    }
+
+    /**
+     * "Needs Attention" widget — only pending/rejected ads, oldest
+     * first, and never leaks another status (e.g. active) into the list.
+     */
+    public function testFindNeedsAttentionReturnsOnlyPendingAndRejectedOldestFirst(): void
+    {
+        $user = $this->seedUser();
+        $app = $this->seedApp();
+        $placement = $this->seedPlacement($app['app']['id']);
+
+        $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'Active Ad', 'status' => 'active']);
+        $newerPending = $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'Newer Pending', 'status' => 'pending']);
+        $olderRejected = $this->seedAd($user['id'], $app['app']['id'], $placement['id'], ['title' => 'Older Rejected', 'status' => 'rejected']);
+
+        Database::query('UPDATE ads SET created_at = :created_at WHERE id = :id', ['created_at' => '2026-01-01 00:00:00', 'id' => $olderRejected['id']]);
+        Database::query('UPDATE ads SET created_at = :created_at WHERE id = :id', ['created_at' => '2026-06-01 00:00:00', 'id' => $newerPending['id']]);
+
+        $attention = (new AdRepository())->findNeedsAttention(5);
+
+        $this->assertCount(2, $attention);
+        $this->assertSame('Older Rejected', $attention[0]['title']);
+        $this->assertSame('Newer Pending', $attention[1]['title']);
+    }
+
+    public function testOldestPendingCreatedAtReturnsNullWhenNothingIsPending(): void
+    {
+        $this->assertNull((new AdRepository())->oldestPendingCreatedAt());
+    }
 }
