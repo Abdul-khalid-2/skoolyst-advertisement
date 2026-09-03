@@ -10,6 +10,7 @@
  */
 
 use App\Apps\AppController;
+use App\Apps\PlacementController;
 
 return [
     [
@@ -47,5 +48,34 @@ return [
         'path' => '/api/v1/admin/apps/{id}/regenerate-key',
         'auth' => true,
         'handler' => [AppController::class, 'regenerateKey'],
+    ],
+
+    // Placement CRUD (10.o) — an app's own ad-slot codes, managed
+    // from the same Admin → Connected Apps page. `{id}`/`{placementId}`
+    // are cosmetic path segments, same convention as the app routes
+    // above — see PlacementController::index()'s doc-block.
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/admin/apps/{id}/placements',
+        'auth' => true,
+        'handler' => [PlacementController::class, 'index'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/admin/apps/{id}/placements',
+        'auth' => true,
+        'handler' => [PlacementController::class, 'store'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/apps/{id}/placements/{placementId}',
+        'auth' => true,
+        'handler' => [PlacementController::class, 'update'],
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/admin/apps/{id}/placements/{placementId}',
+        'auth' => true,
+        'handler' => [PlacementController::class, 'destroy'],
     ],
 ];

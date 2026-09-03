@@ -21,6 +21,22 @@ class AppRepository
     }
 
     /**
+     * One app by id, or null if it doesn't exist. Used by
+     * PlacementController to confirm an app_id is real before
+     * creating/listing placements under it, the same existence-check
+     * shape updateStatus() already uses for its own 404.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function find(int $appId): ?array
+    {
+        return Database::fetchOne(
+            'SELECT id, name, code, domain, status, created_at FROM apps WHERE id = :id',
+            ['id' => $appId]
+        );
+    }
+
+    /**
      * Same as all(), plus each app's placement count and total ad
      * count — what admin/apps.php's connected-apps grid shows (10.i)
      * instead of data/mock-data.php's hardcoded numbers. Ad count is
