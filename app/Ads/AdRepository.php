@@ -26,6 +26,12 @@ class AdRepository
      * GET /ads/serve — only ever returns ads that are active, within
      * their schedule window, and scoped to the requesting app.
      *
+     * Joins through `ad_placements` (migration 0019, 10.p) rather than
+     * `ads.placement_id` directly — an ad can now be linked to more
+     * than one of its app's placements, and this is what makes it
+     * actually servable on every one of them, not just the single
+     * placement it happened to be created with.
+     *
      * @return array<string, mixed>|null
      */
     public function findServableForPlacement(int $appId, string $placementCode): ?array
@@ -34,7 +40,8 @@ class AdRepository
             <<<SQL
                 SELECT ads.id, ads.title, ads.description, ads.image_path, ads.cta_text, ads.click_url
                 FROM ads
-                INNER JOIN placements ON placements.id = ads.placement_id
+                INNER JOIN ad_placements ON ad_placements.ad_id = ads.id
+                INNER JOIN placements ON placements.id = ad_placements.placement_id
                 WHERE ads.app_id = :app_id
                   AND placements.code = :placement_code
                   AND ads.status = 'active'
@@ -108,13 +115,18 @@ class AdRepository
                     ads.start_date, ads.end_date, ads.app_id,
                     users.name AS advertiser_name,
                     apps.name AS app_name,
-                    placements.label AS placement_label,
+                    placement_agg.labels AS placement_label,
                     COALESCE(stats.impressions, 0) AS impressions,
                     COALESCE(stats.clicks, 0) AS clicks
                 FROM ads
                 INNER JOIN users ON users.id = ads.user_id
                 INNER JOIN apps ON apps.id = ads.app_id
-                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_placements.ad_id, GROUP_CONCAT(placements.label ORDER BY placements.label SEPARATOR ', ') AS labels
+                    FROM ad_placements
+                    INNER JOIN placements ON placements.id = ad_placements.placement_id
+                    GROUP BY ad_placements.ad_id
+                ) placement_agg ON placement_agg.ad_id = ads.id
                 LEFT JOIN (
                     SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
                     FROM ad_stats_daily
@@ -172,13 +184,18 @@ class AdRepository
                     ads.start_date, ads.end_date, ads.app_id,
                     users.name AS advertiser_name,
                     apps.name AS app_name,
-                    placements.label AS placement_label,
+                    placement_agg.labels AS placement_label,
                     COALESCE(stats.impressions, 0) AS impressions,
                     COALESCE(stats.clicks, 0) AS clicks
                 FROM ads
                 INNER JOIN users ON users.id = ads.user_id
                 INNER JOIN apps ON apps.id = ads.app_id
-                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_placements.ad_id, GROUP_CONCAT(placements.label ORDER BY placements.label SEPARATOR ', ') AS labels
+                    FROM ad_placements
+                    INNER JOIN placements ON placements.id = ad_placements.placement_id
+                    GROUP BY ad_placements.ad_id
+                ) placement_agg ON placement_agg.ad_id = ads.id
                 LEFT JOIN (
                     SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
                     FROM ad_stats_daily
@@ -291,12 +308,17 @@ class AdRepository
                     ads.id, ads.title, ads.image_path, ads.status,
                     ads.start_date, ads.end_date, ads.app_id,
                     apps.name AS app_name,
-                    placements.label AS placement_label,
+                    placement_agg.labels AS placement_label,
                     COALESCE(stats.impressions, 0) AS impressions,
                     COALESCE(stats.clicks, 0) AS clicks
                 FROM ads
                 INNER JOIN apps ON apps.id = ads.app_id
-                INNER JOIN placements ON placements.id = ads.placement_id
+                LEFT JOIN (
+                    SELECT ad_placements.ad_id, GROUP_CONCAT(placements.label ORDER BY placements.label SEPARATOR ', ') AS labels
+                    FROM ad_placements
+                    INNER JOIN placements ON placements.id = ad_placements.placement_id
+                    GROUP BY ad_placements.ad_id
+                ) placement_agg ON placement_agg.ad_id = ads.id
                 LEFT JOIN (
                     SELECT ad_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks
                     FROM ad_stats_daily
@@ -354,6 +376,30 @@ class AdRepository
     }
 
     /**
+     * Every placement id an ad currently serves on, oldest-linked
+     * first — the source of truth `findServableForPlacement()` reads.
+     * Used by AdController::show()/adminShow() (10.p) to pre-check the
+     * right boxes on the (locked, informational-only — see
+     * findForUser()'s doc-block) placement picker when an ad is
+     * opened for editing.
+     *
+     * @return array<int, int>
+     */
+    public function placementIdsForAd(int $adId): array
+    {
+        return array_map(
+            'intval',
+            array_column(
+                Database::query(
+                    'SELECT placement_id FROM ad_placements WHERE ad_id = :ad_id ORDER BY placement_id ASC',
+                    ['ad_id' => $adId]
+                )->fetchAll(),
+                'placement_id'
+            )
+        );
+    }
+
+    /**
      * GET /api/v1/advertiser/ads/{id} — feeds the "Edit Ad" form's
      * prefill (my-ads.php's edit button). Scoped to `user_id` in the
      * WHERE clause, same as updateForUser() below, so one advertiser
@@ -366,6 +412,9 @@ class AdRepository
      * `placement_id` (not selectable from findAllForUser()'s joined
      * row, which only has the human-readable `placement_label`) so
      * the form can pre-select the right placement in its dropdown.
+     * `placement_id` itself is legacy (see create()'s doc-block) —
+     * AdController::show() attaches the real `placement_ids` list on
+     * top of this row via placementIdsForAd() above.
      *
      * @return array<string, mixed>|null
      */
@@ -383,31 +432,67 @@ class AdRepository
     }
 
     /**
-     * @param array<string, mixed> $data Validated fields from AdValidator.
+     * @param array<string, mixed> $data Validated fields from AdValidator; $data['placement_ids']
+     *                                    is a non-empty list of placement ids (10.p — an ad can now
+     *                                    target more than one of its app's placements).
      */
     public function create(int $userId, array $data): array
     {
-        Database::query(
-            <<<SQL
-                INSERT INTO ads (user_id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date)
-                VALUES (:user_id, :app_id, :placement_id, :advertiser_name, :title, :description, :image_path, :cta_text, :click_url, 'pending', :start_date, :end_date)
-            SQL,
-            [
-                'user_id' => $userId,
-                'app_id' => $data['app_id'],
-                'placement_id' => $data['placement_id'],
-                'advertiser_name' => $data['advertiser_name'],
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'image_path' => $data['image_path'],
-                'cta_text' => $data['cta_text'],
-                'click_url' => $data['click_url'],
-                'start_date' => $data['start_date'],
-                'end_date' => $data['end_date'],
-            ]
-        );
+        $placementIds = $data['placement_ids'];
 
-        return ['user_id' => $userId] + $data;
+        // ads.placement_id is still NOT NULL (kept, not dropped — see
+        // migration 0019's doc-block) and is never read as the source
+        // of truth for serving anymore, but it still needs a real
+        // value: the first placement the ad was submitted with.
+        $primaryPlacementId = $placementIds[0];
+
+        // The insert into `ads` and the one-or-more inserts into
+        // `ad_placements` below must succeed together, or not at all —
+        // the first time this codebase has needed a real transaction
+        // (every other write here is already a single statement).
+        // Without it, a mid-loop failure on the second placement would
+        // leave a real ad row with no rows in ad_placements at all —
+        // an ad that exists but is servable nowhere.
+        $connection = Database::connection();
+        $connection->beginTransaction();
+
+        try {
+            Database::query(
+                <<<SQL
+                    INSERT INTO ads (user_id, app_id, placement_id, advertiser_name, title, description, image_path, cta_text, click_url, status, start_date, end_date)
+                    VALUES (:user_id, :app_id, :placement_id, :advertiser_name, :title, :description, :image_path, :cta_text, :click_url, 'pending', :start_date, :end_date)
+                SQL,
+                [
+                    'user_id' => $userId,
+                    'app_id' => $data['app_id'],
+                    'placement_id' => $primaryPlacementId,
+                    'advertiser_name' => $data['advertiser_name'],
+                    'title' => $data['title'],
+                    'description' => $data['description'],
+                    'image_path' => $data['image_path'],
+                    'cta_text' => $data['cta_text'],
+                    'click_url' => $data['click_url'],
+                    'start_date' => $data['start_date'],
+                    'end_date' => $data['end_date'],
+                ]
+            );
+
+            $adId = (int) $connection->lastInsertId();
+
+            foreach ($placementIds as $placementId) {
+                Database::query(
+                    'INSERT INTO ad_placements (ad_id, placement_id) VALUES (:ad_id, :placement_id)',
+                    ['ad_id' => $adId, 'placement_id' => $placementId]
+                );
+            }
+
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
+        }
+
+        return ['id' => $adId, 'user_id' => $userId] + $data;
     }
 
     /**
@@ -478,7 +563,9 @@ class AdRepository
      * `user_id` filter: an admin edits any advertiser's ad, not just
      * their own. Ownership scoping isn't relevant here because the
      * caller (AdController::adminShow()) already gated on the admin
-     * role, not on owning the row.
+     * role, not on owning the row. `placement_id` here is legacy, same
+     * caveat as findForUser() — adminShow() attaches the real
+     * `placement_ids` list via placementIdsForAd() on top of this row.
      *
      * @return array<string, mixed>|null
      */

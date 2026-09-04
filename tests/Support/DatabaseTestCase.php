@@ -33,7 +33,7 @@ abstract class DatabaseTestCase extends TestCase
         $connection = Database::connection();
         $connection->exec('SET FOREIGN_KEY_CHECKS = 0');
 
-        foreach (['ad_stats_daily', 'ad_clicks', 'ad_impressions', 'audit_log', 'ads', 'api_keys', 'placements', 'apps', 'users'] as $table) {
+        foreach (['ad_stats_daily', 'ad_clicks', 'ad_impressions', 'audit_log', 'ad_placements', 'ads', 'api_keys', 'placements', 'apps', 'users'] as $table) {
             $connection->exec("TRUNCATE TABLE `{$table}`");
         }
 
@@ -90,6 +90,13 @@ abstract class DatabaseTestCase extends TestCase
      */
     protected function seedAd(int $userId, int $appId, int $placementId, array $overrides = []): array
     {
+        // Pulled out before merging into $data below — 'placement_ids'
+        // isn't a real `ads` column, it's this fixture's own way of
+        // saying "seed the ad onto more than one placement" (10.p),
+        // so it must never reach the ads INSERT's bound params.
+        $placementIds = $overrides['placement_ids'] ?? [$placementId];
+        unset($overrides['placement_ids']);
+
         $defaults = [
             'title' => 'Test Ad',
             'description' => 'A test ad.',
@@ -116,9 +123,26 @@ abstract class DatabaseTestCase extends TestCase
             ]
         );
 
-        return Database::fetchOne(
+        $ad = Database::fetchOne(
             'SELECT * FROM ads WHERE user_id = :user_id AND app_id = :app_id ORDER BY id DESC LIMIT 1',
             ['user_id' => $userId, 'app_id' => $appId]
         );
+
+        // Mirrors the real AdRepository::create() (10.p): every ad now
+        // needs a row in ad_placements to actually be servable — this
+        // fixture inserts directly into `ads` rather than going
+        // through the repository (see this class's own doc-block), so
+        // it has to keep that part in sync by hand. $placementIds lets
+        // a test seed an ad onto more than one placement at once
+        // without a second raw INSERT of its own (pass
+        // `['placement_ids' => [...]]` in $overrides).
+        foreach ($placementIds as $id) {
+            Database::query(
+                'INSERT INTO ad_placements (ad_id, placement_id) VALUES (:ad_id, :placement_id)',
+                ['ad_id' => $ad['id'], 'placement_id' => $id]
+            );
+        }
+
+        return $ad;
     }
 }

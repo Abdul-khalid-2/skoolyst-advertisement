@@ -16,16 +16,19 @@ use Core\Uploads;
 use Core\Cache;
 use Core\Auth\Middleware;
 use App\Apps\AppRepository;
+use App\Apps\PlacementRepository;
 
 class AdController
 {
     private AdRepository $ads;
     private AppRepository $apps;
+    private PlacementRepository $placements;
 
     public function __construct()
     {
         $this->ads = new AdRepository();
         $this->apps = new AppRepository();
+        $this->placements = new PlacementRepository();
     }
 
     /**
@@ -184,6 +187,14 @@ class AdController
             Response::error(['code' => 'not_found', 'message' => 'Ad not found.'], 404);
             return;
         }
+
+        // 10.p — the real list of placements this ad serves on
+        // (ads.placement_id above is only ever the first one it was
+        // submitted with). The edit form's picker is locked either
+        // way (see create-ad.php — an ad's app/placement can't be
+        // changed once created), but it still needs every currently-
+        // selected box checked, not just one.
+        $ad['placement_ids'] = $this->ads->placementIdsForAd($adId);
 
         Response::success(['ad' => $ad]);
     }
@@ -385,6 +396,9 @@ class AdController
             return;
         }
 
+        // 10.p — same reasoning as the advertiser-facing show() above.
+        $ad['placement_ids'] = $this->ads->placementIdsForAd($adId);
+
         Response::success(['ad' => $ad]);
     }
 
@@ -546,15 +560,34 @@ class AdController
 
         if ($requireAppPlacement) {
             $appId = Request::int('app_id');
-            $placementId = Request::int('placement_id');
+            $placementIds = Request::intArray('placement_ids');
 
-            if ($appId === null || $placementId === null) {
-                Response::error(['code' => 'validation_error', 'message' => 'app_id and placement_id are required.']);
+            if ($appId === null || $placementIds === []) {
+                Response::error(['code' => 'validation_error', 'message' => 'app_id and at least one placement_id are required.']);
+                return null;
+            }
+
+            // Confirms app_id is real and every submitted placement
+            // actually belongs to it — same cross-app scoping
+            // principle as 6.u, now applied to placements too (10.p).
+            // Without this, a crafted request could mix in another
+            // app's placement id: previously that would only misfile
+            // a single ad; now, with a list, the blast radius per
+            // request is larger, so this check was added alongside
+            // the multi-placement feature rather than left as a
+            // pre-existing gap.
+            if ($this->apps->find($appId) === null) {
+                Response::error(['code' => 'not_found', 'message' => 'App not found.'], 404);
+                return null;
+            }
+
+            if (!$this->placements->allBelongToApp($placementIds, $appId)) {
+                Response::error(['code' => 'validation_error', 'message' => 'One or more placements do not belong to the selected app.']);
                 return null;
             }
 
             $data['app_id'] = $appId;
-            $data['placement_id'] = $placementId;
+            $data['placement_ids'] = $placementIds;
         }
 
         return $data;

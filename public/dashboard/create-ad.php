@@ -118,7 +118,7 @@ ob_start();
       <!-- STEP 2 -->
       <div class="db-card mb-4" data-step="2">
         <div class="db-card__header">
-          <div><h3>Placement &amp; App</h3><p>Choose which Skoolyst app and placement this ad should appear on</p></div>
+          <div><h3>Placement &amp; App</h3><p>Choose which Skoolyst app and placement(s) this ad should appear on</p></div>
         </div>
         <div class="db-card__body d-flex flex-column gap-3">
           <div>
@@ -126,10 +126,11 @@ ob_start();
             <div class="db-checkgrid" id="app-checkgrid"></div>
           </div>
           <div>
-            <label class="db-form-label" for="f-placement">Placement <?= help_icon('placement', $helpText) ?></label>
-            <select id="f-placement" class="db-select" required>
-              <option value="">Select an app first</option>
-            </select>
+            <label class="db-form-label">Placements <?= help_icon('placement', $helpText) ?></label>
+            <p class="db-form-hint mt-0 mb-2">Pick one, several, or all of this app's placements — the ad will run on every one you select.</p>
+            <div class="db-checkgrid" id="placement-checkgrid">
+              <p class="text-muted mb-0">Select an app first.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -208,7 +209,9 @@ $pageScript = <<<JS
   // placement_id foreign keys.
   let liveApps = [];
   let selectedApp = null;
-  let selectedPlacementId = null;
+  // 10.p — an ad can now target more than one of its app's
+  // placements, so this is a Set of ids rather than one value.
+  let selectedPlacementIds = new Set();
   let currentStep = 1;
   const totalSteps = 3;
   let previewVariant = 'main';
@@ -232,6 +235,7 @@ $pageScript = <<<JS
   let currentImageSrc = '../assets/img/ad-1.svg';
 
   const grid = document.getElementById('app-checkgrid');
+  const placementGrid = document.getElementById('placement-checkgrid');
 
   function renderAppGrid() {
     grid.innerHTML = liveApps.map(function (app) {
@@ -251,18 +255,30 @@ $pageScript = <<<JS
     updatePreview();
   });
 
+  // 10.p — renders every placement the chosen app defines as its own
+  // checkbox (not a single-select <select>), so an ad can be checked
+  // onto 1, several, or all of them at once instead of exactly one.
   function populatePlacements(appId) {
-    const select = document.getElementById('f-placement');
     const app = liveApps.find(function (a) { return String(a.id) === String(appId); });
     const options = app ? app.placements : [];
-    selectedPlacementId = null;
-    select.innerHTML = options.map(function (p) {
-      return '<option value="' + p.id + '">' + escapeHtml(p.label) + '</option>';
-    }).join('') || '<option value="">No placements for this app</option>';
+    selectedPlacementIds = new Set();
+    placementGrid.innerHTML = options.map(function (p) {
+      return (
+        '<label class="db-check-card">' +
+          '<input type="checkbox" name="target-placement" value="' + p.id + '">' +
+          '<span>' + escapeHtml(p.label) + '</span>' +
+        '</label>'
+      );
+    }).join('') || '<p class="text-muted mb-0">No placements for this app.</p>';
   }
 
-  document.getElementById('f-placement').addEventListener('change', function (e) {
-    selectedPlacementId = e.target.value || null;
+  placementGrid.addEventListener('change', function (e) {
+    if (e.target.name !== 'target-placement') return;
+    if (e.target.checked) {
+      selectedPlacementIds.add(e.target.value);
+    } else {
+      selectedPlacementIds.delete(e.target.value);
+    }
   });
 
   // Real apps/placements are needed either way: a new ad's Step 2
@@ -344,25 +360,30 @@ $pageScript = <<<JS
       drop.innerHTML = '<img src="' + currentImageSrc + '" alt="">';
     }
 
-    // An ad's app/placement can't be changed once created —
-    // AdController::update() never accepts app_id/placement_id, so
+    // An ad's app/placement(s) can't be changed once created —
+    // AdController::update() never accepts app_id/placement_ids, so
     // the ad stays on whichever it was submitted with. Step 2 still
-    // shows which app/placement that is, but pre-selected and locked
-    // rather than left as a live picker.
+    // shows which app/placements those are, but pre-selected and
+    // locked rather than left as a live picker.
     selectedApp = String(editingAd.app_id);
     const radio = grid.querySelector('input[value="' + selectedApp + '"]');
     if (radio) { radio.checked = true; }
     Array.prototype.forEach.call(grid.querySelectorAll('input[name="target-app"]'), function (input) {
       input.disabled = true;
     });
-    // populatePlacements() resets selectedPlacementId to null as part
-    // of rebuilding the <select> for the new app — so the ad's real
-    // placement_id has to be (re-)applied after that call, not before.
+    // populatePlacements() resets selectedPlacementIds as part of
+    // rebuilding the checkboxes for the new app — so the ad's real
+    // placement_ids have to be (re-)applied after that call, not
+    // before. Every placement the ad currently serves on
+    // (AdController::show()/adminShow() attach the full list, not
+    // just the legacy single placement_id) gets checked and disabled.
     populatePlacements(selectedApp);
-    selectedPlacementId = String(editingAd.placement_id);
-    const placementSelect = document.getElementById('f-placement');
-    placementSelect.value = selectedPlacementId;
-    placementSelect.disabled = true;
+    const editingPlacementIds = (editingAd.placement_ids || [editingAd.placement_id]).map(String);
+    selectedPlacementIds = new Set(editingPlacementIds);
+    Array.prototype.forEach.call(placementGrid.querySelectorAll('input[name="target-placement"]'), function (input) {
+      input.checked = editingPlacementIds.indexOf(input.value) !== -1;
+      input.disabled = true;
+    });
 
     updatePreview();
   }
@@ -479,7 +500,7 @@ $pageScript = <<<JS
 
   function validateStep2() {
     if (!selectedApp) { showToast('Please choose which app this ad should run on.', 'error'); return false; }
-    if (!document.getElementById('f-placement').value) { showToast('Please choose a placement.', 'error'); return false; }
+    if (selectedPlacementIds.size === 0) { showToast('Please choose at least one placement.', 'error'); return false; }
     return true;
   }
 
@@ -612,8 +633,8 @@ $pageScript = <<<JS
       showToast('Please choose which app this ad should run on.', 'error');
       return;
     }
-    if (!selectedPlacementId) {
-      showToast('Please choose a placement.', 'error');
+    if (selectedPlacementIds.size === 0) {
+      showToast('Please choose at least one placement.', 'error');
       return;
     }
 
@@ -626,7 +647,7 @@ $pageScript = <<<JS
     formData.append('start_date', document.getElementById('f-start').value);
     formData.append('end_date', document.getElementById('f-end').value);
     formData.append('app_id', selectedApp);
-    formData.append('placement_id', selectedPlacementId);
+    selectedPlacementIds.forEach(function (id) { formData.append('placement_ids[]', id); });
 
     const file = fileInput.files && fileInput.files[0];
     if (file) formData.append('image', file);

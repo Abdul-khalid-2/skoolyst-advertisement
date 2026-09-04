@@ -75,6 +75,42 @@ class PlacementRepository
     }
 
     /**
+     * True only if every id in $placementIds is a real placement AND
+     * belongs to $appId. Used by AdController::validatedAdInput()
+     * (10.p) so an ad's multi-placement selection can never include
+     * another app's placement id, the same cross-app scoping
+     * principle 6.u already applies to ads/apps, just applied to
+     * placements. False (never true) for an empty list — "at least
+     * one placement" is enforced by the caller, but this method
+     * shouldn't report success for a check that was never actually
+     * made.
+     *
+     * @param array<int, int> $placementIds
+     */
+    public function allBelongToApp(array $placementIds, int $appId): bool
+    {
+        $placementIds = array_values(array_unique($placementIds));
+        if ($placementIds === []) {
+            return false;
+        }
+
+        $params = ['app_id' => $appId];
+        $placeholders = [];
+        foreach ($placementIds as $index => $id) {
+            $key = "pid{$index}";
+            $placeholders[] = ":{$key}";
+            $params[$key] = $id;
+        }
+
+        $row = Database::fetchOne(
+            'SELECT COUNT(*) AS total FROM placements WHERE app_id = :app_id AND id IN (' . implode(',', $placeholders) . ')',
+            $params
+        );
+
+        return $row !== null && (int) $row['total'] === count($placementIds);
+    }
+
+    /**
      * Creates a new placement under an app. Uniqueness of (app_id,
      * code) is the caller's (PlacementController::store's)
      * responsibility to check first via codeExistsForApp() — kept
