@@ -25,9 +25,6 @@
   </nav>
 
   <div class="db-sidebar__footer">
-    <a href="<?= $baseHref ?>dashboard/index.php" class="db-switcher">
-      <i class="bi bi-megaphone-fill"></i> Switch to Advertiser View <i class="bi bi-chevron-right"></i>
-    </a>
     <div class="db-user-card">
       <div class="db-avatar">KK</div>
       <div>
