@@ -131,6 +131,36 @@ class AppController
     }
 
     /**
+     * PATCH /api/v1/admin/apps/reorder
+     * Persists a manual drag-and-drop reorder of the Connected Apps
+     * grid (10.q). Body carries the FULL list of app ids in their new
+     * display order — validated against the current set of app ids so
+     * a stale/tampered list (missing an app, a duplicate, an id from
+     * another table) can't silently corrupt every row's sort_order.
+     */
+    public function reorder(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $orderedIds = Request::intArray('app_ids');
+        $currentIds = $this->apps->allIdsInOrder();
+
+        if (count($orderedIds) !== count($currentIds) || array_diff($orderedIds, $currentIds) !== [] || array_diff($currentIds, $orderedIds) !== []) {
+            Response::error(['code' => 'validation_error', 'message' => 'app_ids must list every connected app exactly once.']);
+            return;
+        }
+
+        $this->apps->reorder($orderedIds);
+
+        AuditLog::write($adminId, 'app.reorder', 'app', $orderedIds[0] ?? 0);
+
+        Response::success([]);
+    }
+
+    /**
      * PATCH /api/v1/admin/apps/{id}/regenerate-key
      * Issues a fresh key, revokes the previous one, and writes an
      * audit-log entry for the action (6.w).

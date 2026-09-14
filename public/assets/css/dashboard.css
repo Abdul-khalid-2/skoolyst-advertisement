@@ -403,6 +403,33 @@ body.db-body {
 .db-card__body { padding: 1.35rem; }
 .db-card__body--flush { padding: 0; }
 
+/* ---------- Connected Apps drag-to-reorder (10.q) ---------- */
+.db-app-card-col {
+  transition: transform 0.15s ease;
+}
+.db-app-card-col.dragging {
+  opacity: 0.4;
+}
+.db-app-card-col.dragging .db-card {
+  box-shadow: none;
+}
+
+.db-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 42px;
+  margin-left: -0.5rem;
+  color: var(--color-neutral-muted-light);
+  cursor: grab;
+  font-size: 1.05rem;
+}
+.db-drag-handle:active {
+  cursor: grabbing;
+}
+
 /* Stat cards */
 .db-stat {
   background: var(--color-white);

@@ -41,10 +41,14 @@ function render_app_card(array $app): string
         ? '<span class="badge-status badge-status--active">Active</span>'
         : '<span class="badge-status badge-status--paused">Paused</span>';
 
-    return '<div class="col-md-6 col-xl-4">'
+    // draggable + data-app-id live on this outer column wrapper (not just
+    // the inner .db-card) so a drop can reorder the actual grid cell —
+    // the Bootstrap column, not just the card content inside it (10.q).
+    return '<div class="col-md-6 col-xl-4 db-app-card-col" draggable="true" data-app-id="' . htmlspecialchars($app['id']) . '" data-app-name="' . htmlspecialchars($app['name']) . '">'
         . '<div class="db-card h-100" data-app-id="' . htmlspecialchars($app['id']) . '" data-app-name="' . htmlspecialchars($app['name']) . '">'
         . '<div class="db-card__body d-flex flex-column gap-3">'
         . '<div class="d-flex align-items-start gap-3">'
+        . '<span class="db-drag-handle" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>'
         . '<span class="app-badge__icon" style="margin:0;">' . htmlspecialchars($app['code']) . '</span>'
         . '<div class="flex-grow-1">'
         . '<div class="d-flex align-items-center gap-2">'
@@ -80,7 +84,7 @@ ob_start();
 <div class="db-page-head">
   <div>
     <h1>Connected Apps</h1>
-    <p>Every site or app plugged into the shared AdEngine API, and the credentials it uses to request ads. <?= help_icon('api_key', $helpText) ?></p>
+    <p>Every site or app plugged into the shared AdEngine API, and the credentials it uses to request ads. <?= help_icon('api_key', $helpText) ?> Drag a card by its <i class="bi bi-grip-vertical"></i> handle to reorder the grid.</p>
   </div>
 </div>
 
@@ -165,6 +169,90 @@ $pageScript = <<<'JS'
 
   var csrfToken = document.getElementById('_csrf').value;
   var grid = document.getElementById('apps-grid');
+
+  // -----------------------------------------------------------------------
+  // Drag-and-drop reorder (10.q) — native HTML5 Drag and Drop, no library.
+  // Each .db-app-card-col is draggable; dragover moves the dragged column
+  // to whichever side of the nearest other card the cursor is on (using
+  // straight-line distance to each card's center, so it works across the
+  // grid's row-wrapping, not just a single vertical list). The new order
+  // is only persisted once, on dragend/drop, not on every dragover.
+  // -----------------------------------------------------------------------
+  var draggingCol = null;
+
+  function closestCard(x, y) {
+    var cols = Array.prototype.slice.call(grid.querySelectorAll('.db-app-card-col'));
+    var closest = null;
+    var closestDist = Infinity;
+    cols.forEach(function (col) {
+      if (col === draggingCol) return;
+      var box = col.getBoundingClientRect();
+      var cx = box.left + box.width / 2;
+      var cy = box.top + box.height / 2;
+      var dist = Math.pow(x - cx, 2) + Math.pow(y - cy, 2);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = { el: col, cx: cx, cy: cy, box: box };
+      }
+    });
+    return closest;
+  }
+
+  function persistOrder() {
+    var ids = Array.prototype.map.call(grid.querySelectorAll('.db-app-card-col'), function (col) {
+      return col.dataset.appId;
+    });
+
+    fetch('../api/v1/admin/apps/reorder', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ app_ids: ids }),
+    })
+      .then(function (res) { return res.json().then(function (json) { return { ok: res.ok, json: json }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.json.success) {
+          var message = (result.json.error && result.json.error.message) || 'Could not save the new order.';
+          showToast(message, 'error');
+        }
+      })
+      .catch(function () {
+        showToast('Network error — the new order was not saved.', 'error');
+      });
+  }
+
+  grid.addEventListener('dragstart', function (e) {
+    var col = e.target.closest('.db-app-card-col');
+    if (!col) return;
+    draggingCol = col;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', col.dataset.appId);
+    window.setTimeout(function () { col.classList.add('dragging'); }, 0);
+  });
+
+  grid.addEventListener('dragover', function (e) {
+    if (!draggingCol) return;
+    e.preventDefault();
+
+    var target = closestCard(e.clientX, e.clientY);
+    if (!target) return;
+
+    var sameRow = Math.abs(e.clientY - target.cy) < target.box.height / 2;
+    var insertBefore = sameRow ? (e.clientX < target.cx) : (e.clientY < target.cy);
+
+    if (insertBefore) {
+      grid.insertBefore(draggingCol, target.el);
+    } else {
+      grid.insertBefore(draggingCol, target.el.nextSibling);
+    }
+  });
+
+  grid.addEventListener('dragend', function () {
+    if (!draggingCol) return;
+    draggingCol.classList.remove('dragging');
+    draggingCol = null;
+    persistOrder();
+  });
 
   function patchApp(appId, status, auditAction) {
     return fetch('../api/v1/admin/apps/' + encodeURIComponent(appId), {

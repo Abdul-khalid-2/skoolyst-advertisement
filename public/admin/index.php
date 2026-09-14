@@ -60,6 +60,7 @@ $trendDelta = static function (?float $percent, string $suffix = ' vs last month
 };
 
 $impressionsTrend = $trendDelta($percentChange($performance['impressions_current'], $performance['impressions_previous']));
+$clicksTrend = $trendDelta($percentChange($performance['clicks_current'], $performance['clicks_previous']));
 
 // "Avg. review time" was never real (no moderated_at/updated_at column
 // on `ads` to compute it from) — replaced with the oldest pending ad's
@@ -126,10 +127,11 @@ ob_start();
 
 <!-- Stat cards -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><?= stat_card('bi-megaphone-fill', 'Total Ads', (string) $statusCounts['all'], 'Across ' . count($connectedApps) . ' apps', 'flat', 'admin') ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-hourglass-split', 'Pending Review', (string) $statusCounts['pending'], $pendingSubLabel, 'flat', 'warning') ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-eye-fill', 'Impressions (30d)', number_format($performance['impressions_current']), $impressionsTrend['text'], $impressionsTrend['class'], 'secondary', $impressionsTrend['icon']) ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-grid-3x3-gap-fill', 'Connected Apps', (string) count($connectedApps), $activeAppsCount . ' active &middot; ' . $pausedAppsCount . ' paused', 'flat', 'success') ?></div>
+  <div class="col-6 col-lg"><?= stat_card('bi-megaphone-fill', 'Total Ads', (string) $statusCounts['all'], 'Across ' . count($connectedApps) . ' apps', 'flat', 'admin', '', '', false) ?></div>
+  <div class="col-6 col-lg"><?= stat_card('bi-hourglass-split', 'Pending Review', (string) $statusCounts['pending'], $pendingSubLabel, 'flat', 'warning', '', '', false) ?></div>
+  <div class="col-6 col-lg"><?= stat_card('bi-eye-fill', 'Impressions (30d)', number_format($performance['impressions_current']), $impressionsTrend['text'], $impressionsTrend['class'], 'secondary', $impressionsTrend['icon'], '', false) ?></div>
+  <div class="col-6 col-lg"><?= stat_card('bi-cursor-fill', 'Total Clicks (30d)', number_format($performance['clicks_current']), $clicksTrend['text'], $clicksTrend['class'], 'success', $clicksTrend['icon'], '', false) ?></div>
+  <div class="col-6 col-lg"><?= stat_card('bi-grid-3x3-gap-fill', 'Connected Apps', (string) count($connectedApps), $activeAppsCount . ' active &middot; ' . $pausedAppsCount . ' paused', 'flat', 'success', '', '', false) ?></div>
 </div>
 
 <div class="row g-3 mb-4">

@@ -12,6 +12,7 @@
  * @param string $iconVariant '' | 'secondary' | 'success' | 'warning' | 'admin'
  * @param string $deltaIcon   Bootstrap icon class for the small arrow, e.g. 'bi-arrow-up-short'
  * @param string $labelExtra  Optional extra HTML appended right after the label (e.g. a help_icon())
+ * @param bool   $showIcon    False renders the card with no icon block at all
  */
 function stat_card(
     string $icon,
@@ -21,7 +22,8 @@ function stat_card(
     string $deltaClass = 'flat',
     string $iconVariant = '',
     string $deltaIcon = '',
-    string $labelExtra = ''
+    string $labelExtra = '',
+    bool $showIcon = true
 ): string {
     $iconClass = 'db-stat__icon' . ($iconVariant ? ' db-stat__icon--' . htmlspecialchars($iconVariant) : '');
     $deltaHtml = '';
@@ -31,8 +33,10 @@ function stat_card(
             . $arrow . htmlspecialchars($delta) . '</span>';
     }
 
+    $iconHtml = $showIcon ? '<div class="' . $iconClass . '"><i class="bi ' . htmlspecialchars($icon) . '"></i></div>' : '';
+
     return '<div class="db-stat">'
-        . '<div class="' . $iconClass . '"><i class="bi ' . htmlspecialchars($icon) . '"></i></div>'
+        . $iconHtml
         . '<div>'
         . '<p class="db-stat__label mb-0">' . htmlspecialchars($label) . $labelExtra . '</p>'
         . '<p class="db-stat__value mb-0">' . htmlspecialchars($value) . '</p>'

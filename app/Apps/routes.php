@@ -38,6 +38,16 @@ return [
         'handler' => [AppController::class, 'store'],
     ],
     [
+        // Must be registered before PATCH /api/v1/admin/apps/{id} below —
+        // the router matches routes in array order and {id} is a
+        // catch-all single segment that would otherwise swallow
+        // "reorder" too (see public/index.php's routePathToRegex()).
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/apps/reorder',
+        'auth' => true,
+        'handler' => [AppController::class, 'reorder'],
+    ],
+    [
         'method' => 'PATCH',
         'path' => '/api/v1/admin/apps/{id}',
         'auth' => true,

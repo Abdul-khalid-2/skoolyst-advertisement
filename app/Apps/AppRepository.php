@@ -21,6 +21,43 @@ class AppRepository
     }
 
     /**
+     * Every id currently in `apps`, in the order admin/apps.php's grid
+     * shows them (sort_order ASC, id ASC) — reorder() validates a
+     * proposed new order against this before applying it.
+     *
+     * @return int[]
+     */
+    public function allIdsInOrder(): array
+    {
+        return array_map(
+            'intval',
+            array_column(
+                Database::query('SELECT id FROM apps ORDER BY sort_order ASC, id ASC')->fetchAll(),
+                'id'
+            )
+        );
+    }
+
+    /**
+     * Persists a manual drag-and-drop reorder of the Connected Apps grid
+     * (10.q). $orderedIds is the FULL list of app ids in their new
+     * display order — each id's position in the array becomes its new
+     * sort_order (1-based, so an unset/legacy row's default 0 always
+     * sorts before anything a human has actually arranged).
+     */
+    public function reorder(array $orderedIds): void
+    {
+        $position = 1;
+        foreach ($orderedIds as $appId) {
+            Database::query(
+                'UPDATE apps SET sort_order = :sort_order WHERE id = :id',
+                ['sort_order' => $position, 'id' => $appId]
+            );
+            $position++;
+        }
+    }
+
+    /**
      * One app by id, or null if it doesn't exist. Used by
      * PlacementController to confirm an app_id is real before
      * creating/listing placements under it, the same existence-check
@@ -42,6 +79,11 @@ class AppRepository
      * instead of data/mock-data.php's hardcoded numbers. Ad count is
      * every ad regardless of status, matching the mock UI's own
      * `ads.filter(a => a.app === app.id).length`.
+     *
+     * Ordered by `sort_order` (10.q's manual drag-and-drop reorder),
+     * not `created_at` — every row defaults to sort_order 0, so `id`
+     * ASC as the tiebreaker keeps a never-reordered grid in creation
+     * order, same as it looked before sort_order existed.
      */
     public function allWithCounts(): array
     {
@@ -58,7 +100,7 @@ class AppRepository
                 LEFT JOIN (
                     SELECT app_id, COUNT(*) AS total FROM ads GROUP BY app_id
                 ) ad_counts ON ad_counts.app_id = apps.id
-                ORDER BY apps.created_at DESC
+                ORDER BY apps.sort_order ASC, apps.id ASC
             SQL
         )->fetchAll();
 
