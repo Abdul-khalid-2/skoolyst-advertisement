@@ -133,17 +133,17 @@ ob_start();
 ?>
 <div class="db-page-head">
   <div>
-    <h1>Welcome back, <?= htmlspecialchars($currentUser->name) ?> 👋</h1>
+    <h1>Welcome back, <?= htmlspecialchars($currentUser->name) ?></h1>
     <p>Here's how your ads are performing across every connected Skoolyst app.</p>
   </div>
 </div>
 
 <!-- Stat cards -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><?= stat_card('bi-megaphone-fill', 'Active Ads', (string) $statusCounts['active'], $activeAdsDelta, 'flat', '') ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-eye-fill', 'Impressions (30d)', number_format($performance['impressions_current']), $impressionsTrend['text'], $impressionsTrend['class'], 'secondary', $impressionsTrend['icon'], help_icon('impressions', $helpText)) ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-cursor-fill', 'Clicks (30d)', number_format($performance['clicks_current']), $clicksTrend['text'], $clicksTrend['class'], 'success', $clicksTrend['icon']) ?></div>
-  <div class="col-6 col-lg-3"><?= stat_card('bi-percent', 'Avg. Click-Through Rate', number_format($ctrCurrent, 2) . '%', $ctrTrend['text'], $ctrTrend['class'], 'warning', $ctrTrend['icon'], help_icon('ctr', $helpText)) ?></div>
+  <div class="col-6 col-lg-3"><?= stat_card('bi-megaphone-fill', 'Active Ads', (string) $statusCounts['active'], $activeAdsDelta, 'flat', '', '', '', false) ?></div>
+  <div class="col-6 col-lg-3"><?= stat_card('bi-eye-fill', 'Impressions (30d)', number_format($performance['impressions_current']), $impressionsTrend['text'], $impressionsTrend['class'], 'secondary', $impressionsTrend['icon'], help_icon('impressions', $helpText), false) ?></div>
+  <div class="col-6 col-lg-3"><?= stat_card('bi-cursor-fill', 'Clicks (30d)', number_format($performance['clicks_current']), $clicksTrend['text'], $clicksTrend['class'], 'success', $clicksTrend['icon'], '', false) ?></div>
+  <div class="col-6 col-lg-3"><?= stat_card('bi-percent', 'Avg. Click-Through Rate', number_format($ctrCurrent, 2) . '%', $ctrTrend['text'], $ctrTrend['class'], 'warning', $ctrTrend['icon'], help_icon('ctr', $helpText), false) ?></div>
 </div>
 
 <div class="row g-3 mb-4">
