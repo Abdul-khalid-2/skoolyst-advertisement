@@ -10,6 +10,7 @@
  */
 
 use App\Admin\ModerationController;
+use App\Admin\UserController;
 
 return [
     [
@@ -41,5 +42,34 @@ return [
         'path' => '/api/v1/admin/ads/{id}/activate',
         'auth' => true,
         'handler' => [ModerationController::class, 'activate'],
+    ],
+
+    // User management (Advertisers screen) — full CRUD over the `users`
+    // table, both roles. `{id}` is a cosmetic path segment, same
+    // convention as the Apps module routes — the real id is read from
+    // the body (see UserController).
+    [
+        'method' => 'GET',
+        'path' => '/api/v1/admin/users',
+        'auth' => true,
+        'handler' => [UserController::class, 'index'],
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/v1/admin/users',
+        'auth' => true,
+        'handler' => [UserController::class, 'store'],
+    ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/admin/users/{id}',
+        'auth' => true,
+        'handler' => [UserController::class, 'update'],
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/v1/admin/users/{id}',
+        'auth' => true,
+        'handler' => [UserController::class, 'destroy'],
     ],
 ];

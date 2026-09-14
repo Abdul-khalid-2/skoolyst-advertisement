@@ -20,7 +20,7 @@
 
     <div class="db-nav-label">Platform</div>
     <a href="<?= $baseHref ?>admin/apps.php" class="db-nav-link<?= nav_active('admin-apps', $activeNav) ?>"><i class="bi bi-grid-3x3-gap-fill"></i> Connected Apps</a>
-    <a href="#" class="db-nav-link disabled"><i class="bi bi-people-fill"></i> Advertisers <span class="db-nav-soon">Soon</span></a>
+    <a href="<?= $baseHref ?>admin/advertisers.php" class="db-nav-link<?= nav_active('admin-advertisers', $activeNav) ?>"><i class="bi bi-people-fill"></i> Advertisers</a>
     <a href="<?= $baseHref ?>api-docs.php" class="db-nav-link<?= nav_active('api-docs', $activeNav) ?>"><i class="bi bi-code-slash"></i> API Docs</a>
   </nav>
 
