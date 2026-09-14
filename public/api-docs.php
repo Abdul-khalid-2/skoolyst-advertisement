@@ -1,9 +1,22 @@
 <?php
+require __DIR__ . '/../core/Autoload.php';
+require __DIR__ . '/../core/Env.php';
 require __DIR__ . '/../views/bootstrap.php';
+
+use App\Auth\UserRepository;
+use Core\Auth\Middleware;
+
+Core\Env::load(__DIR__ . '/../.env');
+
+// API Docs is shared between the admin and advertiser sidebars — reflect
+// whichever role is actually logged in instead of assuming advertiser.
+$userId = Middleware::checkSession();
+$currentUser = $userId !== null ? (new UserRepository())->findById($userId) : null;
+$isAdmin = $currentUser !== null && $currentUser->isAdmin();
 
 $pageTitle  = 'API Docs';
 $metaDescription = 'AdEngine API reference for Skoolyst Ads: authenticate with an API key, request ads to serve, and report impressions and clicks for any connected app.';
-$role       = 'advertiser';
+$role       = $isAdmin ? 'admin' : 'advertiser';
 $activeNav  = 'api-docs';
 $baseHref   = '';
 
