@@ -3,24 +3,17 @@ require __DIR__ . '/../core/Autoload.php';
 require __DIR__ . '/../core/Env.php';
 require __DIR__ . '/../views/bootstrap.php';
 
-use App\Auth\UserRepository;
-use Core\Auth\Middleware;
-
 Core\Env::load(__DIR__ . '/../.env');
 
-// API Docs is shared between the admin and advertiser sidebars — reflect
-// whichever role is actually logged in instead of assuming advertiser.
-$userId = Middleware::checkSession();
-$currentUser = $userId !== null ? (new UserRepository())->findById($userId) : null;
-$isAdmin = $currentUser !== null && $currentUser->isAdmin();
-
+// API Docs is reference documentation for anyone integrating with the
+// platform — not an admin/advertiser tool — so it lives on the public
+// site (same navbar/footer as index.html) with no login required and
+// no dashboard sidebar chrome (10.r). It previously reused the
+// dashboard shell, which meant it needed a role to pick a sidebar and
+// looked like an internal tool even for a logged-out visitor.
 $pageTitle  = 'API Docs';
 $metaDescription = 'AdEngine API reference for Skoolyst Ads: authenticate with an API key, request ads to serve, and report impressions and clicks for any connected app.';
-$role       = $isAdmin ? 'admin' : 'advertiser';
-$activeNav  = 'api-docs';
 $baseHref   = '';
-
-$topbarActions = '<span class="chip"><i class="bi bi-tag me-1"></i> v1</span> <a href="admin/apps.php" class="btn btn-sk-outline btn-sm">Manage API Keys</a>';
 
 $placementRows = '';
 foreach ($mockData['apps'] as $app) {
@@ -37,6 +30,10 @@ ob_start();
   <div>
     <h2>AdEngine API Reference</h2>
     <p>One API, every Skoolyst app. Request ads, report impressions and clicks, and keep every placement in sync with what's configured in the dashboard — no ad logic hardcoded per project.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="chip"><i class="bi bi-tag me-1"></i> v1</span>
+    <a href="admin/apps.php" class="btn btn-sk-outline btn-sm">Manage API Keys</a>
   </div>
 </div>
 
@@ -200,4 +197,4 @@ $ad = json_decode($response, true)['data']['ad']; // null if nothing is eligible
 </div>
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/../views/layouts/app.php';
+require __DIR__ . '/../views/layouts/public.php';

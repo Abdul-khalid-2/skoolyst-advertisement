@@ -1030,11 +1030,22 @@ body.db-body {
 .btn-reject:hover { background: var(--color-danger); color: #fff; }
 
 /* ---------- Code / API docs ---------- */
+/* api-docs.php now lives on the public site (views/layouts/public.php),
+   not inside the dashboard shell — .db-content's padding never applies
+   there, so this gives the doc layout its own equivalent spacing under
+   the public navbar instead of sitting flush against it. */
+.sk-public-page {
+  padding: 2rem 1rem 4rem;
+}
+
 .db-doc-layout { display: flex; gap: 2rem; align-items: flex-start; }
 .db-doc-nav {
   flex: 0 0 220px;
   position: sticky;
-  top: calc(var(--db-topbar-h) + 1.25rem);
+  /* Public navbar (.sk-navbar, py-3 + its content) runs taller than the
+     dashboard's fixed --db-topbar-h — approximated here since it's not
+     itself a fixed height. */
+  top: calc(82px + 1.25rem);
 }
 .db-doc-nav a {
   display: block;
@@ -1047,7 +1058,7 @@ body.db-body {
 .db-doc-nav a:hover { color: var(--color-primary); background: var(--color-neutral-bg-alt); }
 .db-doc-nav a.active { color: var(--color-primary); background: var(--color-primary-light); }
 .db-doc-content { flex: 1; min-width: 0; }
-.db-doc-section { margin-bottom: 2.75rem; scroll-margin-top: calc(var(--db-topbar-h) + 1rem); }
+.db-doc-section { margin-bottom: 2.75rem; scroll-margin-top: calc(82px + 1rem); }
 .db-doc-section h2 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 0.6rem; }
 .db-doc-section h3 { font-size: 1rem; font-weight: 700; margin: 1.4rem 0 0.6rem; }
 .db-doc-section p { color: var(--color-neutral-text); font-size: 0.92rem; line-height: 1.65; }
