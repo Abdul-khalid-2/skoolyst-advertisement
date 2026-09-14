@@ -3,6 +3,9 @@ require __DIR__ . '/../core/Autoload.php';
 require __DIR__ . '/../core/Env.php';
 require __DIR__ . '/../views/bootstrap.php';
 
+use App\Auth\UserRepository;
+use Core\Auth\Middleware;
+
 Core\Env::load(__DIR__ . '/../.env');
 
 // API Docs is reference documentation for anyone integrating with the
@@ -11,6 +14,14 @@ Core\Env::load(__DIR__ . '/../.env');
 // no dashboard sidebar chrome (10.r). It previously reused the
 // dashboard shell, which meant it needed a role to pick a sidebar and
 // looked like an internal tool even for a logged-out visitor.
+//
+// This session check is only to decide whether to show the "Manage API
+// Keys" shortcut below (admin-only page) — it never gates the docs
+// themselves, and a logged-out visitor never redirects anywhere.
+$userId = Middleware::checkSession();
+$currentUser = $userId !== null ? (new UserRepository())->findById($userId) : null;
+$isAdmin = $currentUser !== null && $currentUser->isAdmin();
+
 $pageTitle  = 'API Docs';
 $metaDescription = 'AdEngine API reference for Skoolyst Ads: authenticate with an API key, request ads to serve, and report impressions and clicks for any connected app.';
 $baseHref   = '';
@@ -33,7 +44,9 @@ ob_start();
   </div>
   <div class="d-flex align-items-center gap-2">
     <span class="chip"><i class="bi bi-tag me-1"></i> v1</span>
-    <a href="admin/apps.php" class="btn btn-sk-outline btn-sm">Manage API Keys</a>
+    <?php if ($isAdmin): ?>
+      <a href="admin/apps.php" class="btn btn-sk-outline btn-sm">Manage API Keys</a>
+    <?php endif; ?>
   </div>
 </div>
 
