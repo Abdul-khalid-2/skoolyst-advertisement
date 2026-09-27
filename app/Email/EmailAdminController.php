@@ -50,10 +50,10 @@ class EmailAdminController
         }
 
         $email = Request::string('email');
-        $password = (string) (Request::input()['app_password'] ?? '');
+        $password = self::normalizeAppPassword((string) (Request::input()['app_password'] ?? ''));
         $limit = Request::int('daily_limit') ?? 40;
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || trim($password) === '' || $limit < 1 || $limit > 100000) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '' || $limit < 1 || $limit > 100000) {
             Response::error(['code' => 'validation_error', 'message' => 'A valid email, an app password, and a daily limit of at least 1 are required.'], 422);
             return;
         }
@@ -83,7 +83,7 @@ class EmailAdminController
 
         $id = Request::int('account_id');
         $email = Request::string('email');
-        $password = (string) (Request::input()['app_password'] ?? '');
+        $password = self::normalizeAppPassword((string) (Request::input()['app_password'] ?? ''));
         $limit = Request::int('daily_limit');
         $status = Request::string('status');
 
@@ -98,7 +98,7 @@ class EmailAdminController
         }
 
         try {
-            $found = $this->accounts->update($id, $email, $limit, $status, trim($password) === '' ? null : $password);
+            $found = $this->accounts->update($id, $email, $limit, $status, $password === '' ? null : $password);
         } catch (\RuntimeException $e) {
             Response::error(['code' => 'encryption_error', 'message' => $e->getMessage()], 500);
             return;
@@ -239,5 +239,17 @@ class EmailAdminController
             return;
         }
         Response::success([]);
+    }
+
+    /**
+     * Google's UI shows an app password as 4 space-separated groups
+     * (e.g. "abcd efgh ijkl mnop") purely for readability — the actual
+     * credential has no spaces, and Gmail's SMTP AUTH rejects it if
+     * they're sent as-is. Stripping all whitespace here means it works
+     * whether an admin pastes it with or without the spaces.
+     */
+    private static function normalizeAppPassword(string $password): string
+    {
+        return preg_replace('/\s+/', '', $password) ?? '';
     }
 }
