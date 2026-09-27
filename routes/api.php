@@ -19,6 +19,7 @@ $moduleRouteFiles = [
     __DIR__ . '/../app/Apps/routes.php',
     __DIR__ . '/../app/Auth/routes.php',
     __DIR__ . '/../app/Admin/routes.php',
+    __DIR__ . '/../app/Email/routes.php',
 ];
 
 foreach ($moduleRouteFiles as $routeFile) {

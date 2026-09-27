@@ -21,6 +21,8 @@
     <div class="db-nav-label">Platform</div>
     <a href="<?= $baseHref ?>admin/apps.php" class="db-nav-link<?= nav_active('admin-apps', $activeNav) ?>"><i class="bi bi-grid-3x3-gap-fill"></i> Connected Apps</a>
     <a href="<?= $baseHref ?>admin/advertisers.php" class="db-nav-link<?= nav_active('admin-advertisers', $activeNav) ?>"><i class="bi bi-people-fill"></i> Advertisers</a>
+    <a href="<?= $baseHref ?>admin/email-accounts.php" class="db-nav-link<?= nav_active('admin-email-accounts', $activeNav) ?>"><i class="bi bi-envelope-at-fill"></i> Email Accounts</a>
+    <a href="<?= $baseHref ?>admin/email-inbox.php" class="db-nav-link<?= nav_active('admin-email-inbox', $activeNav) ?>"><i class="bi bi-inbox-fill"></i> Email Inbox</a>
     <a href="<?= $baseHref ?>api-docs.php" class="db-nav-link<?= nav_active('api-docs', $activeNav) ?>"><i class="bi bi-code-slash"></i> API Docs</a>
   </nav>
 
