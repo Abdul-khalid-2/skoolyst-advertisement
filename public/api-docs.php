@@ -68,7 +68,7 @@ ob_start();
     <section class="db-doc-section" id="getting-started">
       <h3>Getting Started</h3>
       <p>The AdEngine API lets any connected app request ads for a given placement, then report back when an ad was seen or clicked. All Skoolyst properties — <code>skoolyst.com</code>, <code>social.skoolyst.com</code>, <code>teachers.skoolyst.com</code> — and outside apps like Jaans Fabrics or Saif Pindi Autos talk to the same three endpoints below.</p>
-      <p class="muted">Base URL: <code>https://adds.skoolyst.com/api/v1</code></p>
+      <p class="muted">Base URL: <code>https://ads.skoolyst.com/api/v1</code></p>
       <h4>Integration flow</h4>
       <p>1. Request an ad for a placement on page load. 2. Render it using your own markup, matching the field names below. 3. Fire an impression once it's actually visible. 4. Fire a click event when the ad's link is opened.</p>
     </section>
@@ -103,16 +103,16 @@ ob_start();
         </div>
         <div>
           <pre class="api-preview-code" data-code-panel="curl" style="display:block;"><code>curl -X GET \
-  "https://adds.skoolyst.com/api/v1/ads/serve?placement=home_top" \
+  "https://ads.skoolyst.com/api/v1/ads/serve?placement=home_top" \
   -H "Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx"</code></pre>
           <pre class="api-preview-code" data-code-panel="js" style="display:none;"><code><span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(
-  <span class="tok-str">"https://adds.skoolyst.com/api/v1/ads/serve?placement=home_top"</span>,
+  <span class="tok-str">"https://ads.skoolyst.com/api/v1/ads/serve?placement=home_top"</span>,
   { headers: { Authorization: <span class="tok-str">"Bearer sk_live_xxxxxxxxxxxxxxxx"</span> } }
 );
 <span class="tok-key">const</span> { data } = <span class="tok-key">await</span> res.json();
 <span class="tok-key">const</span> ad = data.ad; // null if nothing is eligible</code></pre>
           <pre class="api-preview-code" data-code-panel="php" style="display:none;"><code>$response = file_get_contents(
-  'https://adds.skoolyst.com/api/v1/ads/serve?placement=home_top',
+  'https://ads.skoolyst.com/api/v1/ads/serve?placement=home_top',
   false,
   stream_context_create(['http' => [
     'header' => "Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx"
