@@ -241,6 +241,54 @@ class EmailAdminController
         Response::success([]);
     }
 
+    /** PATCH /api/v1/admin/email-messages/{id}/unread */
+    public function messagesMarkUnread(): void
+    {
+        if (Middleware::requireRole(['admin']) === null) {
+            return;
+        }
+
+        $id = Request::int('message_id');
+        if ($id === null || !$this->messages->markUnread($id)) {
+            Response::error(['code' => 'not_found', 'message' => 'Message not found.'], 404);
+            return;
+        }
+        Response::success([]);
+    }
+
+    /** PATCH /api/v1/admin/email-messages/{id}/pin — body: {message_id, pinned} */
+    public function messagesSetPinned(): void
+    {
+        if (Middleware::requireRole(['admin']) === null) {
+            return;
+        }
+
+        $id = Request::int('message_id');
+        $pinned = filter_var(Request::input()['pinned'] ?? null, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($id === null || $pinned === null || !$this->messages->setPinned($id, $pinned)) {
+            Response::error(['code' => 'not_found', 'message' => 'Message not found or "pinned" missing.'], 404);
+            return;
+        }
+        Response::success([]);
+    }
+
+    /** DELETE /api/v1/admin/email-messages/{id} */
+    public function messagesDestroy(): void
+    {
+        $adminId = Middleware::requireRole(['admin']);
+        if ($adminId === null) {
+            return;
+        }
+
+        $id = Request::int('message_id');
+        if ($id === null || !$this->messages->delete($id)) {
+            Response::error(['code' => 'not_found', 'message' => 'Message not found.'], 404);
+            return;
+        }
+        AuditLog::write($adminId, 'email_message.delete', 'email_message', $id);
+        Response::success([]);
+    }
+
     /**
      * Google's UI shows an app password as 4 space-separated groups
      * (e.g. "abcd efgh ijkl mnop") purely for readability — the actual

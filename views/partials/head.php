@@ -17,6 +17,7 @@ $metaDescription = $metaDescription ?? 'Skoolyst Ads — the centralized adverti
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($pageTitle) ?> — Skoolyst Ads</title>
 <meta name="description" content="<?= htmlspecialchars($metaDescription) ?>">
+<link rel="icon" type="image/jpeg" href="<?= $baseHref ?>favicon.jpg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

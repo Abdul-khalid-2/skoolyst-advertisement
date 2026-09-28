@@ -32,4 +32,7 @@ return [
     // ---- Admin: message inbox ----
     ['method' => 'GET', 'path' => '/api/v1/admin/email-messages', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesIndex']],
     ['method' => 'PATCH', 'path' => '/api/v1/admin/email-messages/{id}/read', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesMarkRead']],
+    ['method' => 'PATCH', 'path' => '/api/v1/admin/email-messages/{id}/unread', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesMarkUnread']],
+    ['method' => 'PATCH', 'path' => '/api/v1/admin/email-messages/{id}/pin', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesSetPinned']],
+    ['method' => 'DELETE', 'path' => '/api/v1/admin/email-messages/{id}', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesDestroy']],
 ];

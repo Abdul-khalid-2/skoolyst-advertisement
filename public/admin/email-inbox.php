@@ -63,10 +63,13 @@ ob_start();
 
   <div class="db-table-wrap">
     <table class="db-table">
-      <thead><tr><th>Message</th><th>App</th><th>Account</th><th>Direction</th><th>Status</th><th>Date</th><th></th></tr></thead>
+      <thead><tr><th></th><th>Message</th><th>App</th><th>Account</th><th>Direction</th><th>Status</th><th>Date</th><th></th></tr></thead>
       <tbody id="messages-body">
       <?php foreach ($messages as $m): ?>
-        <tr data-message-id="<?= (int) $m['id'] ?>" class="<?= $m['status'] === 'unread' ? 'fw-bold' : '' ?>">
+        <tr data-message-id="<?= (int) $m['id'] ?>" data-status="<?= htmlspecialchars($m['status']) ?>" data-pinned="<?= (int) $m['pinned'] ?>" class="<?= $m['status'] === 'unread' ? 'fw-bold' : '' ?><?= $m['pinned'] ? ' table-warning' : '' ?>">
+          <td>
+            <button type="button" class="db-action-btn<?= $m['pinned'] ? ' text-warning' : '' ?>" data-toggle-pin title="<?= $m['pinned'] ? 'Unpin' : 'Pin' ?>"><i class="bi <?= $m['pinned'] ? 'bi-pin-fill' : 'bi-pin-angle' ?>"></i></button>
+          </td>
           <td style="max-width:420px;">
             <div><?= htmlspecialchars($m['title']) ?></div>
             <div class="small text-muted fw-normal"><?= htmlspecialchars((string) $m['subtitle']) ?></div>
@@ -78,9 +81,10 @@ ob_start();
           <td data-status-cell><?= $m['status'] === 'unread' ? '<span class="badge-status badge-status--pending">Unread</span>' : '<span class="badge-status badge-status--ended">Read</span>' ?></td>
           <td class="text-muted small"><?= htmlspecialchars($m['created_at']) ?></td>
           <td class="text-end">
-            <?php if ($m['status'] === 'unread'): ?>
-              <button type="button" class="btn btn-sk-outline btn-sm" data-mark-read>Mark read</button>
-            <?php endif; ?>
+            <div class="d-flex gap-2 justify-content-end">
+              <button type="button" class="db-action-btn" data-toggle-read title="<?= $m['status'] === 'unread' ? 'Mark read' : 'Mark unread' ?>"><i class="bi <?= $m['status'] === 'unread' ? 'bi-envelope-open' : 'bi-envelope' ?>"></i></button>
+              <button type="button" class="db-action-btn db-action-btn--danger" data-delete-message title="Delete"><i class="bi bi-trash"></i></button>
+            </div>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -99,28 +103,83 @@ $pageScript = <<<'JS'
   'use strict';
 
   var csrfToken = document.getElementById('_csrf').value;
+  var tbody = document.getElementById('messages-body');
 
-  document.getElementById('messages-body').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-mark-read]');
-    if (!btn) return;
-    var row = btn.closest('tr');
-    var id = row.dataset.messageId;
-
-    btn.disabled = true;
-    fetch('../api/v1/admin/email-messages/' + encodeURIComponent(id) + '/read', {
-      method: 'PATCH',
+  function api(method, id, body) {
+    return fetch('../api/v1/admin/email-messages/' + encodeURIComponent(id) + (method.suffix || ''), {
+      method: method.verb,
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-      body: JSON.stringify({ message_id: id }),
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (json) {
-        if (!json.success) { btn.disabled = false; showToast('Could not mark as read.', 'error'); return; }
-        row.classList.remove('fw-bold');
-        row.querySelector('[data-status-cell]').innerHTML = '<span class="badge-status badge-status--ended">Read</span>';
-        btn.remove();
-      })
-      .catch(function () { btn.disabled = false; showToast('Network error - please try again.', 'error'); });
+      body: JSON.stringify(Object.assign({ message_id: id }, body || {})),
+    }).then(function (res) { return res.json().then(function (json) { return { ok: res.ok && json.success, json: json }; }); });
+  }
+
+  function fail(result, fallback) {
+    showToast((result.json.error && result.json.error.message) || fallback, 'error');
+  }
+
+  tbody.addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-message-id]');
+    if (!row) return;
+    var id = row.dataset.messageId;
+
+    var toggleReadBtn = e.target.closest('[data-toggle-read]');
+    var togglePinBtn = e.target.closest('[data-toggle-pin]');
+    var deleteBtn = e.target.closest('[data-delete-message]');
+
+    if (toggleReadBtn) {
+      var goingUnread = row.dataset.status !== 'unread';
+      toggleReadBtn.disabled = true;
+      api({ verb: 'PATCH', suffix: goingUnread ? '/unread' : '/read' }, id).then(function (result) {
+        toggleReadBtn.disabled = false;
+        if (!result.ok) return fail(result, 'Could not update this message.');
+
+        row.dataset.status = goingUnread ? 'unread' : 'read';
+        row.classList.toggle('fw-bold', goingUnread);
+        row.querySelector('[data-status-cell]').innerHTML = goingUnread
+          ? '<span class="badge-status badge-status--pending">Unread</span>'
+          : '<span class="badge-status badge-status--ended">Read</span>';
+        toggleReadBtn.title = goingUnread ? 'Mark read' : 'Mark unread';
+        toggleReadBtn.innerHTML = '<i class="bi ' + (goingUnread ? 'bi-envelope-open' : 'bi-envelope') + '"></i>';
+      });
+      return;
+    }
+
+    if (togglePinBtn) {
+      var pinning = row.dataset.pinned !== '1';
+      togglePinBtn.disabled = true;
+      api({ verb: 'PATCH', suffix: '/pin' }, id, { pinned: pinning }).then(function (result) {
+        togglePinBtn.disabled = false;
+        if (!result.ok) return fail(result, 'Could not update the pin.');
+
+        row.dataset.pinned = pinning ? '1' : '0';
+        row.classList.toggle('table-warning', pinning);
+        togglePinBtn.classList.toggle('text-warning', pinning);
+        togglePinBtn.title = pinning ? 'Unpin' : 'Pin';
+        togglePinBtn.innerHTML = '<i class="bi ' + (pinning ? 'bi-pin-fill' : 'bi-pin-angle') + '"></i>';
+        // Pin order only changes on reload — cheap enough for an admin tool, and
+        // avoids re-sorting the whole table client-side while filters are open.
+        showToast(pinning ? 'Message pinned.' : 'Message unpinned.', 'success');
+      });
+      return;
+    }
+
+    if (deleteBtn) {
+      var title = row.querySelector('td:nth-child(2) div').textContent;
+      confirmAction({
+        title: 'Delete "' + title + '"?',
+        body: 'This removes the message from the inbox log permanently.',
+        confirmLabel: 'Delete Message',
+        danger: true,
+        onConfirm: function () {
+          api({ verb: 'DELETE' }, id).then(function (result) {
+            if (!result.ok) return fail(result, 'Could not delete this message.');
+            showToast('Message deleted.', 'success');
+            row.remove();
+          });
+        },
+      });
+    }
   });
 })();
 JS;

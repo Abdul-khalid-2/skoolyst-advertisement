@@ -42,10 +42,10 @@ class EmailMessageRepository
             $params['status'] = $status;
         }
 
-        $sql = 'SELECT m.id, m.source_app, m.title, m.subtitle, m.description, m.direction, m.status, m.created_at, a.email AS account_email
+        $sql = 'SELECT m.id, m.source_app, m.title, m.subtitle, m.description, m.direction, m.status, m.pinned, m.created_at, a.email AS account_email
                 FROM ad_email_messages m JOIN ad_email_accounts a ON a.id = m.email_account_id'
             . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
-            . ' ORDER BY m.id DESC LIMIT ' . (int) $limit;
+            . ' ORDER BY m.pinned DESC, m.id DESC LIMIT ' . (int) $limit;
 
         return Database::query($sql, $params)->fetchAll();
     }
@@ -58,10 +58,40 @@ class EmailMessageRepository
 
     public function markRead(int $id): bool
     {
+        return $this->setStatus($id, 'read');
+    }
+
+    public function markUnread(int $id): bool
+    {
+        return $this->setStatus($id, 'unread');
+    }
+
+    public function setPinned(int $id, bool $pinned): bool
+    {
         if (Database::fetchOne('SELECT id FROM ad_email_messages WHERE id = :id', ['id' => $id]) === null) {
             return false;
         }
-        Database::query("UPDATE ad_email_messages SET status = 'read' WHERE id = :id", ['id' => $id]);
+        Database::query('UPDATE ad_email_messages SET pinned = :pinned WHERE id = :id', ['pinned' => $pinned ? 1 : 0, 'id' => $id]);
+
+        return true;
+    }
+
+    public function delete(int $id): bool
+    {
+        if (Database::fetchOne('SELECT id FROM ad_email_messages WHERE id = :id', ['id' => $id]) === null) {
+            return false;
+        }
+        Database::query('DELETE FROM ad_email_messages WHERE id = :id', ['id' => $id]);
+
+        return true;
+    }
+
+    private function setStatus(int $id, string $status): bool
+    {
+        if (Database::fetchOne('SELECT id FROM ad_email_messages WHERE id = :id', ['id' => $id]) === null) {
+            return false;
+        }
+        Database::query('UPDATE ad_email_messages SET status = :status WHERE id = :id', ['status' => $status, 'id' => $id]);
 
         return true;
     }
