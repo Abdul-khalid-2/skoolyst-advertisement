@@ -24,3 +24,4 @@ require __DIR__ . '/components/help-icon.php';
 require __DIR__ . '/components/ads-table.php';
 require __DIR__ . '/components/modal-confirm.php';
 require __DIR__ . '/components/csrf-field.php';
+require __DIR__ . '/components/user-initials.php';

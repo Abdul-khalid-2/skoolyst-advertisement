@@ -131,4 +131,60 @@ class AuthController
 
         Response::success(['loggedIn' => true, 'role' => $user->role]);
     }
+
+    /**
+     * PATCH /api/v1/auth/profile
+     * Self-service profile edit (profile.php) — any logged-in role.
+     * Unlike UserRepository::update() as called from the admin Users
+     * screen, this never changes `role`: it's always re-sent as the
+     * user's own current role, so nobody can grant themselves admin
+     * through their own profile form. Changing the password requires
+     * the current one, since a stolen session cookie shouldn't be
+     * enough to lock the real owner out.
+     */
+    public function updateProfile(): void
+    {
+        $userId = Middleware::checkSession();
+        if ($userId === null) {
+            Response::error(['code' => 'unauthorized', 'message' => 'You must be logged in.'], 401);
+            return;
+        }
+
+        $user = $this->users->findById($userId);
+        if ($user === null) {
+            Response::error(['code' => 'not_found', 'message' => 'User not found.'], 404);
+            return;
+        }
+
+        $name = Request::string('name');
+        $email = Request::string('email');
+        $currentPassword = (string) (Request::input()['current_password'] ?? '');
+        $newPassword = (string) (Request::input()['new_password'] ?? '');
+
+        if (!Validator::required($name) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Response::error(['code' => 'validation_error', 'message' => 'A name and a valid email are required.']);
+            return;
+        }
+        if ($this->users->emailTakenByOther($email, $userId)) {
+            Response::error(['code' => 'email_taken', 'message' => 'Another account already uses that email.'], 409);
+            return;
+        }
+
+        $passwordHash = null;
+        if ($newPassword !== '') {
+            if (!password_verify($currentPassword, $user->passwordHash)) {
+                Response::error(['code' => 'invalid_credentials', 'message' => 'Current password is incorrect.'], 401);
+                return;
+            }
+            if (mb_strlen($newPassword) < 8) {
+                Response::error(['code' => 'validation_error', 'message' => 'New password must be at least 8 characters.']);
+                return;
+            }
+            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        }
+
+        $this->users->update($userId, $name, $email, $user->role, $passwordHash);
+
+        Response::success(['name' => $name, 'email' => $email, 'role' => $user->role]);
+    }
 }

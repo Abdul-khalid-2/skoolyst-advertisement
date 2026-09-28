@@ -1,7 +1,8 @@
 <?php
 /**
- * Admin sidebar. Expects $activeNav and $baseHref from the page.
- * Loaded by views/layouts/app.php when $role === 'admin'.
+ * Admin sidebar. Expects $activeNav, $baseHref, and $currentUser (the
+ * logged-in UserModel — resolved by views/layouts/app.php if the page
+ * itself didn't already) from the page.
  */
 ?>
 <aside class="db-sidebar db-sidebar--admin">
@@ -28,11 +29,13 @@
 
   <div class="db-sidebar__footer">
     <div class="db-user-card">
-      <div class="db-avatar">KK</div>
-      <div>
-        <p class="db-user-card__name mb-0">Khalid Khan</p>
-        <p class="db-user-card__role mb-0">Platform Admin</p>
-      </div>
+      <a href="<?= $baseHref ?>profile.php" class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
+        <div class="db-avatar"><?= htmlspecialchars($currentUser !== null ? user_initials($currentUser->name) : '?') ?></div>
+        <div style="min-width:0;">
+          <p class="db-user-card__name mb-0 text-truncate"><?= htmlspecialchars($currentUser->name ?? 'Unknown') ?></p>
+          <p class="db-user-card__role mb-0">Platform Admin</p>
+        </div>
+      </a>
       <a href="<?= $baseHref ?>index.html" class="db-user-card__logout" title="Log out"><i class="bi bi-box-arrow-right"></i></a>
     </div>
   </div>

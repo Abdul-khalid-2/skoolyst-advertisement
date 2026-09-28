@@ -14,8 +14,17 @@
  *
  * Optional variables:
  *   $topbarActions, $topbarCrumb, $showSearch, $searchPlaceholder, $pageScript
+ *   $currentUser  UserModel  Reused if the page already fetched it (most do,
+ *                            for their own role check); resolved here otherwise
+ *                            (e.g. my-ads.php only checks the session id) so the
+ *                            sidebar's name/avatar are never hardcoded.
  */
 $baseHref = $baseHref ?? '';
+
+if (!isset($currentUser) || $currentUser === null) {
+    $sidebarUserId = \Core\Auth\Middleware::checkSession();
+    $currentUser = $sidebarUserId !== null ? (new \App\Auth\UserRepository())->findById($sidebarUserId) : null;
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <?php require __DIR__ . '/../partials/head.php'; ?>

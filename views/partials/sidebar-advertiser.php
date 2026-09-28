@@ -1,7 +1,8 @@
 <?php
 /**
- * Advertiser sidebar. Expects $activeNav and $baseHref from the page.
- * Loaded by views/layouts/app.php when $role === 'advertiser'.
+ * Advertiser sidebar. Expects $activeNav, $baseHref, and $currentUser
+ * (the logged-in UserModel — resolved by views/layouts/app.php if the
+ * page itself didn't already) from the page.
  */
 ?>
 <aside class="db-sidebar">
@@ -21,17 +22,19 @@
 
     <div class="db-nav-label">Account</div>
     <a href="#" class="db-nav-link disabled"><i class="bi bi-credit-card-fill"></i> Billing <span class="db-nav-soon">Soon</span></a>
-    <a href="#" class="db-nav-link disabled"><i class="bi bi-gear-fill"></i> Settings <span class="db-nav-soon">Soon</span></a>
+    <a href="<?= $baseHref ?>profile.php" class="db-nav-link<?= nav_active('profile', $activeNav) ?>"><i class="bi bi-gear-fill"></i> Settings</a>
     <a href="<?= $baseHref ?>api-docs.php" class="db-nav-link<?= nav_active('api-docs', $activeNav) ?>"><i class="bi bi-code-slash"></i> API Docs</a>
   </nav>
 
   <div class="db-sidebar__footer">
     <div class="db-user-card">
-      <div class="db-avatar">KK</div>
-      <div>
-        <p class="db-user-card__name mb-0">Khalid Khan</p>
-        <p class="db-user-card__role mb-0">Advertiser</p>
-      </div>
+      <a href="<?= $baseHref ?>profile.php" class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
+        <div class="db-avatar"><?= htmlspecialchars($currentUser !== null ? user_initials($currentUser->name) : '?') ?></div>
+        <div style="min-width:0;">
+          <p class="db-user-card__name mb-0 text-truncate"><?= htmlspecialchars($currentUser->name ?? 'Unknown') ?></p>
+          <p class="db-user-card__role mb-0">Advertiser</p>
+        </div>
+      </a>
       <a href="<?= $baseHref ?>index.html" class="db-user-card__logout" title="Log out"><i class="bi bi-box-arrow-right"></i></a>
     </div>
   </div>

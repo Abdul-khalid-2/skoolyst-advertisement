@@ -38,4 +38,10 @@ return [
         'auth' => false,
         'handler' => [AuthController::class, 'session'],
     ],
+    [
+        'method' => 'PATCH',
+        'path' => '/api/v1/auth/profile',
+        'auth' => true,
+        'handler' => [AuthController::class, 'updateProfile'],
+    ],
 ];
