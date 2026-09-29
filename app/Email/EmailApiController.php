@@ -32,6 +32,17 @@ class EmailApiController
     /**
      * POST /api/v1/email/send
      * Body: { api_key, source_app, to, subject, body }
+     *
+     * Enqueues rather than sending inline (10.s) — when several apps
+     * call this at the same instant, sending each one synchronously
+     * inside the request meant every one of them read the account
+     * rotation table at once, so two requests could both see the same
+     * account as still under its daily_limit and both send before
+     * either's counter update landed (over-sending past the limit), and
+     * concurrent SMTP logins to the same Gmail account are exactly what
+     * trips Gmail's own rate limiting. database/scripts/process-email-
+     * queue.php claims and sends queued rows one at a time, so this
+     * endpoint now only ever does a fast DB insert.
      */
     public function send(): void
     {
@@ -54,16 +65,12 @@ class EmailApiController
             return;
         }
 
-        $result = (new EmailService())->send($client['app_name'], $to, $subject, $body);
+        $queueId = (new EmailQueueRepository())->enqueue($client['app_name'], $to, $subject, $body);
 
-        if (!$result['ok']) {
-            // 503 (not 500): the service is healthy, it just has no
-            // sending capacity right now — callers should retry later.
-            Response::error(['code' => $result['code'], 'message' => $result['message']], 503);
-            return;
-        }
-
-        Response::success(['message_id' => $result['message_id'], 'sent_via' => $result['account_email']], 201);
+        // 202: accepted for processing, not yet sent — distinct from the
+        // old synchronous 201 so callers know not to expect sent_via
+        // in the same response.
+        Response::success(['queue_id' => $queueId, 'status' => 'queued'], 202);
     }
 
     /**

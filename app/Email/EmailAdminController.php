@@ -21,12 +21,14 @@ class EmailAdminController
     private EmailAccountRepository $accounts;
     private ApiClientRepository $clients;
     private EmailMessageRepository $messages;
+    private EmailQueueRepository $queue;
 
     public function __construct()
     {
         $this->accounts = new EmailAccountRepository();
         $this->clients = new ApiClientRepository();
         $this->messages = new EmailMessageRepository();
+        $this->queue = new EmailQueueRepository();
     }
 
     // ---- Accounts ----------------------------------------------------
@@ -286,6 +288,32 @@ class EmailAdminController
             return;
         }
         AuditLog::write($adminId, 'email_message.delete', 'email_message', $id);
+        Response::success([]);
+    }
+
+    // ---- Queue (10.s) --------------------------------------------------
+
+    /** GET /api/v1/admin/email-queue — counts plus the most recent rows */
+    public function queueIndex(): void
+    {
+        if (Middleware::requireRole(['admin']) === null) {
+            return;
+        }
+        Response::success(['counts' => $this->queue->countsByStatus(), 'items' => $this->queue->recent()]);
+    }
+
+    /** PATCH /api/v1/admin/email-queue/{id}/retry — re-queues a permanently failed row */
+    public function queueRetry(): void
+    {
+        if (Middleware::requireRole(['admin']) === null) {
+            return;
+        }
+
+        $id = Request::int('queue_id');
+        if ($id === null || !$this->queue->retry($id)) {
+            Response::error(['code' => 'not_found', 'message' => 'Queued email not found, or it is not currently failed.'], 404);
+            return;
+        }
         Response::success([]);
     }
 

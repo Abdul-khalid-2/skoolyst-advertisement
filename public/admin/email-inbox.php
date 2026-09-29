@@ -5,6 +5,7 @@ require __DIR__ . '/../../views/bootstrap.php';
 
 use App\Auth\UserRepository;
 use App\Email\EmailMessageRepository;
+use App\Email\EmailQueueRepository;
 use Core\Auth\Middleware;
 
 Core\Env::load(__DIR__ . '/../../.env');
@@ -15,6 +16,12 @@ if ($currentUser === null || !$currentUser->isAdmin()) {
     header('Location: ../index.html');
     exit;
 }
+
+$queueRepo = new EmailQueueRepository();
+$queueCounts = $queueRepo->countsByStatus();
+// Pending/processing/failed only — a growing "sent" history here would
+// just repeat rows already visible below in the inbox log itself.
+$queueItems = array_values(array_filter($queueRepo->recent(30), fn ($q) => $q['status'] !== 'sent'));
 
 $messageRepo = new EmailMessageRepository();
 $sourceApps = $messageRepo->sourceApps();
@@ -43,6 +50,46 @@ ob_start();
     <h1>Email Inbox</h1>
     <p>Every email sent (or received) through the shared email API, across all connected apps.</p>
   </div>
+</div>
+
+<div class="db-card mb-4">
+  <div class="db-card__header">
+    <div>
+      <h3>Send Queue</h3>
+      <p>Outgoing emails are sent one at a time by a background worker, not immediately on request — see <code>cron/README.md</code>.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="chip">Pending <?= (int) $queueCounts['pending'] ?></span>
+      <span class="chip">Processing <?= (int) $queueCounts['processing'] ?></span>
+      <span class="chip<?= $queueCounts['failed'] > 0 ? ' text-danger' : '' ?>">Failed <?= (int) $queueCounts['failed'] ?></span>
+    </div>
+  </div>
+  <?php if ($queueItems): ?>
+    <div class="db-table-wrap">
+      <table class="db-table">
+        <thead><tr><th>To</th><th>Subject</th><th>App</th><th>Status</th><th>Attempts</th><th>Last Error</th><th></th></tr></thead>
+        <tbody id="queue-body">
+        <?php foreach ($queueItems as $q): ?>
+          <tr data-queue-id="<?= (int) $q['id'] ?>">
+            <td class="small"><?= htmlspecialchars($q['to_email']) ?></td>
+            <td class="small"><?= htmlspecialchars($q['subject']) ?></td>
+            <td class="small text-muted"><?= htmlspecialchars($q['source_app']) ?></td>
+            <td><?= $q['status'] === 'failed' ? '<span class="badge-status badge-status--rejected">Failed</span>' : ($q['status'] === 'processing' ? '<span class="badge-status badge-status--pending">Processing</span>' : '<span class="badge-status badge-status--paused">Pending</span>') ?></td>
+            <td class="small"><?= (int) $q['attempts'] ?></td>
+            <td class="small text-muted" style="max-width:260px;"><?= htmlspecialchars((string) $q['last_error']) ?></td>
+            <td class="text-end">
+              <?php if ($q['status'] === 'failed'): ?>
+                <button type="button" class="btn btn-sk-outline btn-sm" data-retry-queue>Retry</button>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php else: ?>
+    <div class="db-empty"><h4>Queue is empty</h4><p>Nothing pending, processing, or failed right now.</p></div>
+  <?php endif; ?>
 </div>
 
 <div class="db-card">
@@ -104,6 +151,38 @@ $pageScript = <<<'JS'
 
   var csrfToken = document.getElementById('_csrf').value;
   var tbody = document.getElementById('messages-body');
+  var queueBody = document.getElementById('queue-body');
+
+  if (queueBody) {
+    queueBody.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-retry-queue]');
+      if (!btn) return;
+      var row = btn.closest('tr[data-queue-id]');
+      var id = row.dataset.queueId;
+
+      btn.disabled = true;
+      fetch('../api/v1/admin/email-queue/' + encodeURIComponent(id) + '/retry', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ queue_id: id }),
+      })
+        .then(function (res) { return res.json().then(function (json) { return { ok: res.ok && json.success, json: json }; }); })
+        .then(function (result) {
+          if (!result.ok) {
+            btn.disabled = false;
+            showToast((result.json.error && result.json.error.message) || 'Could not retry this email.', 'error');
+            return;
+          }
+          showToast('Queued for retry — the worker will pick it up on its next run.', 'success');
+          window.setTimeout(function () { window.location.reload(); }, 700);
+        })
+        .catch(function () {
+          btn.disabled = false;
+          showToast('Network error - please try again.', 'error');
+        });
+    });
+  }
 
   function api(method, id, body) {
     return fetch('../api/v1/admin/email-messages/' + encodeURIComponent(id) + (method.suffix || ''), {

@@ -35,4 +35,8 @@ return [
     ['method' => 'PATCH', 'path' => '/api/v1/admin/email-messages/{id}/unread', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesMarkUnread']],
     ['method' => 'PATCH', 'path' => '/api/v1/admin/email-messages/{id}/pin', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesSetPinned']],
     ['method' => 'DELETE', 'path' => '/api/v1/admin/email-messages/{id}', 'auth' => true, 'handler' => [EmailAdminController::class, 'messagesDestroy']],
+
+    // ---- Admin: send queue (10.s) ----
+    ['method' => 'GET', 'path' => '/api/v1/admin/email-queue', 'auth' => true, 'handler' => [EmailAdminController::class, 'queueIndex']],
+    ['method' => 'PATCH', 'path' => '/api/v1/admin/email-queue/{id}/retry', 'auth' => true, 'handler' => [EmailAdminController::class, 'queueRetry']],
 ];

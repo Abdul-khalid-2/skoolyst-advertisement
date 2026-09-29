@@ -1,6 +1,6 @@
 # Skoolyst Email API — Integration Guide
 
-Skoolyst Ads hosts a shared email service. Any Skoolyst app (skoolyst-store, skoolyst-mcqs, skoolyst-blogs, skoolyst-docs, ...) sends mail by calling one HTTP endpoint; this service picks a sender account, sends via SMTP, and logs the message.
+Skoolyst Ads hosts a shared email service. Any Skoolyst app (skoolyst-store, skoolyst-mcqs, skoolyst-blogs, skoolyst-docs, ...) sends mail by calling one HTTP endpoint. The call itself only **queues** the email — a background worker sends them one at a time (see "How sending actually happens" below), which is what keeps several apps sending at once from racing each other or overloading a sender account.
 
 Base URL: `https://ads.skoolyst.com/api/v1` (same host as the Ads API).
 
@@ -34,24 +34,26 @@ curl -X POST https://ads.skoolyst.com/api/v1/email/send \
   }'
 ```
 
-Success `201`:
+Success `202` — accepted and queued, **not yet sent**:
 
 ```json
-{ "success": true, "data": { "message_id": 42, "sent_via": "sender1@gmail.com" } }
+{ "success": true, "data": { "queue_id": 42, "status": "queued" } }
 ```
+
+There's no `sent_via`/success confirmation in this response, because sending hasn't happened yet — the background worker does that afterward. If you need to know whether a specific email actually went out, check **Admin → Email Inbox** (it appears there once sent, or under "Send Queue" with an error if every attempt failed).
 
 ### Error responses
 
+These only cover the request itself (bad key, bad input) — a failure *after* the email is queued (every account exhausted, SMTP down) happens later in the worker and never comes back as an API response; see "How sending actually happens" below.
+
 All errors: `{ "success": false, "error": { "code": "...", "message": "..." } }`
 
-| HTTP | code                     | Meaning / what to do |
-|------|--------------------------|----------------------|
-| 401  | `unauthorized`           | Missing, invalid, or disabled `api_key`. |
-| 403  | `forbidden`              | `source_app` doesn't match the key. |
-| 422  | `validation_error`       | Bad/missing `to`, `subject`, `body`, or too long. Fix the request; don't retry. |
-| 429  | —                        | Rate limited (60 req/min per key). Back off. |
-| 503  | `all_accounts_exhausted` | Every sender account hit its daily limit. **Retry later** (limits reset daily). |
-| 503  | `send_failed`            | Accounts exist but SMTP failed on all of them. Retry later; tell an admin if persistent. |
+| HTTP | code                | Meaning / what to do |
+|------|---------------------|----------------------|
+| 401  | `unauthorized`      | Missing, invalid, or disabled `api_key`. |
+| 403  | `forbidden`         | `source_app` doesn't match the key. |
+| 422  | `validation_error`  | Bad/missing `to`, `subject`, `body`, or too long. Fix the request; don't retry. |
+| 429  | —                   | Rate limited (60 req/min per key). Back off. |
 
 ## 3. Log an inbound email (optional)
 
@@ -93,29 +95,33 @@ function sendSkoolystEmail(string $to, string $subject, string $body): bool
     $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($status === 201) {
-        return true;
-    }
-    if ($status === 503) {
-        // Out of sending capacity right now — queue and retry later.
+    if ($status === 202) {
+        return true; // queued — not a send confirmation, see the guide above
     }
     error_log('Email API error: ' . json_encode($response));
     return false;
 }
 ```
 
-Recommended: call it from a queue/cron job rather than inline in a user request, since a send can take a few seconds and a `503` should be retried.
+The call itself is fast (just a database insert), so it's fine to call inline in a user request — you're not waiting on SMTP.
 
-## How rotation works (for reference)
+## How sending actually happens
+
+`POST /api/v1/email/send` never opens an SMTP connection itself — it inserts a row into a queue table. A background worker (`database/scripts/process-email-queue.php`, run every minute by cron on the Ads server — see `cron/README.md`) claims and sends **one queued email at a time**:
 
 - Each send uses the first `active` account (by id) still under its `daily_limit`.
 - On success its `sent_count` increments; reaching the limit marks it `exhausted` and the next send uses the next account.
 - If an account's SMTP login fails, that request falls through to the next account.
-- `sent_count`/`received_count` reset and `exhausted` accounts become `active` again automatically on the first request of each new day (no cron needed).
+- `sent_count`/`received_count` reset and `exhausted` accounts become `active` again automatically on the first request of each new day (no cron needed for that part).
 - Gmail accounts need 2-Step Verification and an **App Password**; default SMTP is `smtp.gmail.com:587` (override with `SMTP_HOST` / `SMTP_PORT`).
+- A failed send retries automatically a few minutes later (up to 5 attempts, with increasing delay) before being parked as permanently failed — visible, with a manual retry button, on **Admin → Email Inbox**.
+- Processing one at a time, never concurrently, is deliberate: it's what stops two apps sending at the same instant from over-sending past an account's `daily_limit`, or opening two SMTP sessions on the same Gmail account at once (which Gmail itself rate-limits).
+
+There's currently no webhook/callback back to the calling app when a queued email actually sends or permanently fails — if you need that, ask before building against its absence.
 
 ## Server setup
 
 1. Set `EMAIL_ENCRYPTION_KEY` in `.env` (`php -r "echo base64_encode(random_bytes(32));"`). Losing or changing it makes stored app passwords undecryptable.
 2. `php database/scripts/migrate.php`
 3. Add sender accounts and API clients in the admin panel.
+4. Schedule the worker cron job from `cron/README.md` — without it, queued emails are never sent.
