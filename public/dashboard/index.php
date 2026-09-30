@@ -11,7 +11,7 @@ use Core\Auth\Middleware;
 
 Core\Env::load(__DIR__ . '/../../.env');
 
-// Same session check as my-ads.php — this page shows the logged-in
+// Same session check as my-ads — this page shows the logged-in
 // advertiser's own stats, so a visitor with no session (or a stale
 // session pointing at a deleted user) is sent to the marketing page
 // rather than shown a fatal error or someone else's data.
@@ -121,12 +121,12 @@ $baseHref   = '../';
 
 $topbarActions = '
   <button type="button" class="db-icon-btn" title="Notifications"><i class="bi bi-bell"></i><span class="db-dot"></span></button>
-  <a href="create-ad.php" class="btn btn-sk-primary btn-sm px-3"><i class="bi bi-plus-lg me-1"></i> Create Ad</a>
+  <a href="create-ad" class="btn btn-sk-primary btn-sm px-3"><i class="bi bi-plus-lg me-1"></i> Create Ad</a>
 ';
 $searchPlaceholder = 'Search your ads…';
 
 // $apps passed as [] — db_ad_row_to_display() already resolved the app
-// name via the repository's JOIN (same convention as my-ads.php, 10.g).
+// name via the repository's JOIN (same convention as my-ads, 10.g).
 $recentAdsRows = ads_table_rows($recentAds, [], $baseHref, false, false, 4);
 
 ob_start();
@@ -183,7 +183,7 @@ ob_start();
         </div>
         <?php endforeach; ?>
         <hr class="my-1">
-        <a href="create-ad.php" class="btn btn-sk-outline btn-sm w-100">
+        <a href="create-ad" class="btn btn-sk-outline btn-sm w-100">
           <i class="bi bi-plus-lg me-1"></i> Advertise on another app
         </a>
       </div>
@@ -198,7 +198,7 @@ ob_start();
       <h3>Recent Ads</h3>
       <p>Your latest campaigns and their current status</p>
     </div>
-    <a href="my-ads.php" class="btn btn-sk-outline btn-sm">View All Ads</a>
+    <a href="my-ads" class="btn btn-sk-outline btn-sm">View All Ads</a>
   </div>
   <div class="db-table-wrap">
     <table class="db-table">
@@ -214,7 +214,7 @@ ob_start();
         <i class="bi bi-inboxes"></i>
         <h4>No ads yet</h4>
         <p>Create your first ad to start seeing impressions and clicks here.</p>
-        <a href="create-ad.php" class="btn btn-sk-primary btn-sm">Create Ad</a>
+        <a href="create-ad" class="btn btn-sk-primary btn-sm">Create Ad</a>
       </div>
     <?php endif; ?>
   </div>
@@ -227,12 +227,12 @@ $impressionsChartJson = json_encode($impressionsChartData, JSON_UNESCAPED_SLASHE
 // Note: no client-side re-render of the "Recent Ads" rows here — the
 // tbody above is already the real, server-rendered DB data. Re-running
 // it through SkoolystAdsUI.renderAdsTable() would overwrite these rows
-// with window.SkoolystAdsMock's mock ads (same bug my-ads.php's 10.g
+// with window.SkoolystAdsMock's mock ads (same bug my-ads's 10.g
 // fix already had to work around for the full "My Ads" table).
 $pageScript = <<<JS
 document.addEventListener('DOMContentLoaded', function () {
   SkoolystAdsUI.renderBarChart('impressions-chart', {$impressionsChartJson});
-  // 10.n — same real-row edit wiring as my-ads.php.
+  // 10.n — same real-row edit wiring as my-ads.
   SkoolystAdsUI.wireEditLinks('recent-ads-body');
 });
 JS;

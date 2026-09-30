@@ -23,7 +23,7 @@ Core\Env::load(__DIR__ . '/../../.env');
 function skoolyst_login_failed(string $reason): void
 {
     error_log("[skoolyst-auth] {$reason}");
-    header('Location: ../login.php?sso_error=1');
+    header('Location: ../login?sso_error=1');
     exit;
 }
 
@@ -68,5 +68,5 @@ $localUser = $service->findOrCreateLocalUser($result['user']);
 Middleware::startSession($localUser->id);
 Csrf::regenerate();
 
-header('Location: ' . ($localUser->isAdmin() ? '../admin/index.php' : '../dashboard/my-ads.php'));
+header('Location: ' . ($localUser->isAdmin() ? '../admin/index' : '../dashboard/my-ads'));
 exit;

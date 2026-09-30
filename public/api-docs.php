@@ -45,7 +45,7 @@ ob_start();
   <div class="d-flex align-items-center gap-2">
     <span class="chip"><i class="bi bi-tag me-1"></i> v1</span>
     <?php if ($isAdmin): ?>
-      <a href="admin/apps.php" class="btn btn-sk-outline btn-sm">Manage API Keys</a>
+      <a href="admin/apps" class="btn btn-sk-outline btn-sm">Manage API Keys</a>
     <?php endif; ?>
   </div>
 </div>
@@ -75,7 +75,7 @@ ob_start();
 
     <section class="db-doc-section" id="authentication">
       <h3>Authentication</h3>
-      <p>Every request is authenticated with a per-app API key, generated when an app is connected from <a href="admin/apps.php">Admin → Connected Apps</a>. Send it as a bearer token. <?= help_icon('api_key', $helpText) ?></p>
+      <p>Every request is authenticated with a per-app API key, generated when an app is connected from <a href="admin/apps">Admin → Connected Apps</a>. Send it as a bearer token. <?= help_icon('api_key', $helpText) ?></p>
       <div class="endpoint-row">Authorization: Bearer <span style="color:#7dd3fc;">sk_live_xxxxxxxxxxxxxxxx</span></div>
       <p class="muted">Keys are scoped to one app and can only request or report on that app's own placements. Rotate a compromised key immediately from Connected Apps — the old key stops working the moment a new one is issued.</p>
     </section>
@@ -167,7 +167,7 @@ $ad = json_decode($response, true)['data']['ad']; // null if nothing is eligible
 
     <section class="db-doc-section" id="placements">
       <h3>Placement Codes <?= help_icon('placement', $helpText) ?></h3>
-      <p>Each connected app defines its own placement codes from <a href="admin/apps.php">Admin → Connected Apps</a>. Current placements:</p>
+      <p>Each connected app defines its own placement codes from <a href="admin/apps">Admin → Connected Apps</a>. Current placements:</p>
       <div class="db-table-wrap">
         <table class="db-table" style="min-width:520px;">
           <thead><tr><th>App</th><th>Placement Code</th><th>Description</th></tr></thead>

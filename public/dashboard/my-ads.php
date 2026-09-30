@@ -38,7 +38,7 @@ $role       = 'advertiser';
 $activeNav  = 'my-ads';
 $baseHref   = '../';
 
-$topbarActions = '<a href="create-ad.php" class="btn btn-sk-primary btn-sm px-3"><i class="bi bi-plus-lg me-1"></i> Create Ad</a>';
+$topbarActions = '<a href="create-ad" class="btn btn-sk-primary btn-sm px-3"><i class="bi bi-plus-lg me-1"></i> Create Ad</a>';
 $searchPlaceholder = 'Search by title or advertiser…';
 
 // $apps passed as [] — db_ad_row_to_display() already resolved the app
@@ -94,7 +94,7 @@ ob_start();
     <i class="bi bi-inboxes"></i>
     <h4>No ads match your filters</h4>
     <p>Try a different search term or status, or create a new ad to get started.</p>
-    <a href="create-ad.php" class="btn btn-sk-primary btn-sm">Create Ad</a>
+    <a href="create-ad" class="btn btn-sk-primary btn-sm">Create Ad</a>
   </div>
 
   <div class="db-pagination">

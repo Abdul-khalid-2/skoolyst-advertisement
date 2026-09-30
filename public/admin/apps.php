@@ -74,7 +74,7 @@ function render_app_card(array $app): string
         . '<button type="button" class="db-action-btn" title="Regenerate key" data-regen="' . htmlspecialchars($app['id']) . '"><i class="bi bi-arrow-repeat"></i></button>'
         . '</div>'
         . '</div>'
-        . '<a href="../api-docs.php" class="btn btn-sk-outline btn-sm mt-1">View Integration Guide</a>'
+        . '<a href="../api-docs" class="btn btn-sk-outline btn-sm mt-1">View Integration Guide</a>'
         . '</div></div></div>';
 }
 
@@ -114,7 +114,7 @@ ob_start();
         </div>
         <div class="db-form-hint">
           <i class="bi bi-info-circle me-1"></i>
-          A live API key is generated automatically once the app is connected — see <a href="../api-docs.php">API Docs</a> for how to use it.
+          A live API key is generated automatically once the app is connected — see <a href="../api-docs">API Docs</a> for how to use it.
         </div>
       </div>
       <div class="modal-footer">

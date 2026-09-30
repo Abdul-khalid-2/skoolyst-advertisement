@@ -7,11 +7,11 @@ use App\Auth\UserRepository;
 
 Core\Env::load(__DIR__ . '/../.env');
 
-// Same already-logged-in redirect as login.php.
+// Same already-logged-in redirect as login.
 $existingUserId = Middleware::checkSession();
 if ($existingUserId !== null) {
     $existingUser = (new UserRepository())->findById($existingUserId);
-    header('Location: ' . ($existingUser !== null && $existingUser->isAdmin() ? 'admin/index.php' : 'dashboard/my-ads.php'));
+    header('Location: ' . ($existingUser !== null && $existingUser->isAdmin() ? 'admin/index' : 'dashboard/my-ads'));
     exit;
 }
 ?>
@@ -66,7 +66,7 @@ if ($existingUserId !== null) {
       <button type="submit" class="btn btn-sk-primary w-100" id="btn-signup">Sign Up</button>
     </form>
 
-    <p class="sk-auth-footer">Already have an account? <a href="login.php">Log in</a></p>
+    <p class="sk-auth-footer">Already have an account? <a href="login">Log in</a></p>
   </div>
 </div>
 
@@ -124,7 +124,7 @@ if ($existingUserId !== null) {
         }
         // register() doesn't start a session by itself (Section 6 design —
         // signup and login are separate steps), so send them to log in.
-        window.location.href = 'login.php?registered=1';
+        window.location.href = 'login?registered=1';
       })
       .catch(function () {
         alertError.textContent = 'Network error — please try again.';

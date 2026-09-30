@@ -8,7 +8,7 @@ use Core\Auth\Middleware;
 
 Core\Env::load(__DIR__ . '/../../.env');
 
-// Same session check as my-ads.php — an advertiser must be logged in
+// Same session check as my-ads — an advertiser must be logged in
 // to create an ad (the form posts to an authenticated API endpoint
 // anyway, but the page itself was reachable by anyone until now).
 $userId = Middleware::checkSession();
@@ -18,7 +18,7 @@ if ($userId === null) {
 }
 
 // This page is now also how an admin edits any ad from the
-// moderation table (see admin/ads.php's edit button) — the form,
+// moderation table (see admin/ads's edit button) — the form,
 // preview, and validation are all identical, only which API
 // endpoints get called (advertiser-owned vs admin-unscoped) and
 // where Cancel/success navigate back to differ. An admin with no
@@ -28,11 +28,11 @@ $currentUser = (new UserRepository())->findById($userId);
 $isAdmin = $currentUser !== null && $currentUser->isAdmin();
 
 if ($isAdmin && !isset($_GET['edit'])) {
-    header('Location: ../admin/ads.php');
+    header('Location: ../admin/ads');
     exit;
 }
 
-$backHref  = $isAdmin ? '../admin/ads.php' : 'my-ads.php';
+$backHref  = $isAdmin ? '../admin/ads' : 'my-ads';
 $backLabel = $isAdmin ? 'All Ads' : 'My Ads';
 
 $pageTitle  = 'Create Ad';
@@ -194,7 +194,7 @@ $pageScript = <<<JS
   'use strict';
 
   // 10.n admin-edit follow-up — an admin opening this page from
-  // admin/ads.php hits the unscoped /api/v1/admin/ads/... endpoints
+  // admin/ads hits the unscoped /api/v1/admin/ads/... endpoints
   // (AdController::adminShow()/adminUpdate()/adminUpdateImage())
   // instead of the ownership-scoped /api/v1/advertiser/ads/...
   // ones, since the logged-in admin doesn't own the ad being edited.
@@ -673,7 +673,7 @@ $pageScript = <<<JS
           return;
         }
         showToast('Ad submitted for review.', 'success');
-        window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+        window.setTimeout(function () { window.location.href = 'my-ads'; }, 900);
       })
       .catch(function () {
         showToast('Network error — please try again.', 'error');
@@ -695,7 +695,7 @@ $pageScript = <<<JS
       return;
     }
     showToast('Draft saved.', 'info');
-    window.setTimeout(function () { window.location.href = 'my-ads.php'; }, 900);
+    window.setTimeout(function () { window.location.href = 'my-ads'; }, 900);
   });
 })();
 JS;

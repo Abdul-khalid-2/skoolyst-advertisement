@@ -59,14 +59,14 @@
           <li class="nav-item"><a class="nav-link sk-nav-link" href="#teachers">Teachers</a></li>
           <li class="nav-item"><a class="nav-link sk-nav-link" href="#parents">Parents</a></li>
           <li class="nav-item"><a class="nav-link sk-nav-link" href="#students">Students</a></li>
-          <li class="nav-item"><a class="nav-link sk-nav-link" href="api-docs.php">API Docs</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link" href="api-docs">API Docs</a></li>
         </ul>
         <div class="d-flex gap-2" id="nav-auth-buttons">
           <!-- Populated by JS below based on /api/v1/auth/session — defaults
                to Login/Sign Up (the safe guess) so a logged-out visitor never
                briefly sees Dashboard/Create an Ad before the check resolves. -->
-          <a href="login.php" class="btn btn-sk-outline">Log In</a>
-          <a href="signup.php" class="btn btn-sk-primary">Sign Up</a>
+          <a href="login" class="btn btn-sk-outline">Log In</a>
+          <a href="signup" class="btn btn-sk-primary">Sign Up</a>
         </div>
       </div>
     </div>
@@ -263,9 +263,9 @@
           <h4 class="text-white-50 text-uppercase small mb-3" style="letter-spacing:.05em;">Links</h4>
           <ul class="list-unstyled d-flex flex-column gap-2">
             <li><a href="#top">Home</a></li>
-            <li><a href="dashboard/index.php">Advertiser Dashboard</a></li>
-            <li><a href="admin/index.php">Admin</a></li>
-            <li><a href="api-docs.php">API Docs</a></li>
+            <li><a href="dashboard/index">Advertiser Dashboard</a></li>
+            <li><a href="admin/index">Admin</a></li>
+            <li><a href="api-docs">API Docs</a></li>
             <li><a href="#">Privacy</a></li>
             <li><a href="#">Terms</a></li>
           </ul>
@@ -300,10 +300,10 @@
       .then(function (json) {
         if (!json.success || !json.data.loggedIn) return;
         var container = document.getElementById('nav-auth-buttons');
-        var dashboardHref = json.data.role === 'admin' ? 'admin/index.php' : 'dashboard/index.php';
+        var dashboardHref = json.data.role === 'admin' ? 'admin/index' : 'dashboard/index';
         container.innerHTML =
           '<a href="' + dashboardHref + '" class="btn btn-sk-outline">Dashboard</a>' +
-          '<a href="dashboard/create-ad.php" class="btn btn-sk-primary">Create an Ad</a>';
+          '<a href="dashboard/create-ad" class="btn btn-sk-primary">Create an Ad</a>';
       })
       .catch(function () { /* stay on Login/Sign Up if the check fails */ });
   })();

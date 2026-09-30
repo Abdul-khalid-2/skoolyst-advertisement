@@ -145,7 +145,7 @@ $pageScript = <<<'JS'
   // so it did nothing. create-ad.php lives one level up and back down
   // from here (public/admin/ -> public/dashboard/), unlike my-ads.php's
   // same-directory default.
-  SkoolystAdsUI.wireEditLinks('ads-table-body', '../dashboard/create-ad.php?edit=');
+  SkoolystAdsUI.wireEditLinks('ads-table-body', '../dashboard/create-ad?edit=');
 
   // Approve/reject (10.h) call the real admin API and only touch the
   // DOM once the server confirms the change — status/app/pagination

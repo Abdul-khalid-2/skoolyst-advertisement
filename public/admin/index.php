@@ -11,7 +11,7 @@ use Core\Auth\Middleware;
 
 Core\Env::load(__DIR__ . '/../../.env');
 
-// Same role check as admin/ads.php — a plain session check isn't
+// Same role check as admin/ads — a plain session check isn't
 // enough here (an advertiser session would still pass it), so the
 // user's role is checked directly.
 $userId = Middleware::checkSession();
@@ -108,11 +108,11 @@ $searchPlaceholder = 'Search ads, advertisers, apps…';
 
 $topbarActions = '
   <button type="button" class="db-icon-btn" title="Notifications"><i class="bi bi-bell"></i><span class="db-dot"></span></button>
-  <a href="ads.php" class="btn btn-admin-primary btn-sm px-3 text-white"><i class="bi bi-shield-check me-1"></i> Review Queue</a>
+  <a href="ads" class="btn btn-admin-primary btn-sm px-3 text-white"><i class="bi bi-shield-check me-1"></i> Review Queue</a>
 ';
 
 // $apps passed as [] — db_ad_row_to_display() already resolved the app
-// name via the repository's JOIN (same convention as ads.php/10.h).
+// name via the repository's JOIN (same convention as ads/10.h).
 $topAdsRows = ads_table_rows($topAds, [], $baseHref, true, false, 5);
 
 ob_start();
@@ -170,7 +170,7 @@ ob_start();
 <div class="db-card">
   <div class="db-card__header">
     <div><h3>Top Performing Ads</h3><p>Ranked by clicks in the last 30 days</p></div>
-    <a href="ads.php" class="btn btn-sk-outline btn-sm">View All Ads</a>
+    <a href="ads" class="btn btn-sk-outline btn-sm">View All Ads</a>
   </div>
   <div class="db-table-wrap">
     <table class="db-table">
@@ -201,13 +201,13 @@ $pageScript = <<<JS
 
   // Top Ads widget is already real, server-rendered DB data (like
   // dashboard/index.php's "Recent Ads") — just wire the Edit link and
-  // the Pause/Activate/Delete buttons the same way ads.php does, so
+  // the Pause/Activate/Delete buttons the same way ads does, so
   // this widget actually performs actions instead of sitting inert.
   var csrfEl = document.getElementById('_csrf');
   var csrfToken = csrfEl ? csrfEl.value : '';
   var tbody = document.getElementById('top-ads-body');
 
-  SkoolystAdsUI.wireEditLinks('top-ads-body', '../dashboard/create-ad.php?edit=');
+  SkoolystAdsUI.wireEditLinks('top-ads-body', '../dashboard/create-ad?edit=');
 
   if (tbody) {
     tbody.addEventListener('click', function (e) {

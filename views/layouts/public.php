@@ -3,7 +3,7 @@
  * Public marketing-site shell — the same navbar/footer chrome as
  * public/index.html, for pages that need to live on the public website
  * (not gated behind the admin/advertiser dashboard) but aren't the
- * single-page landing page itself. Currently just api-docs.php: the API
+ * single-page landing page itself. Currently just api-docs: the API
  * reference is documentation for anyone integrating with the platform,
  * not an internal admin/advertiser tool, so it shouldn't require a
  * login or show dashboard sidebar chrome (10.r).
@@ -39,11 +39,11 @@ $pageScript = $pageScript ?? '';
           <li class="nav-item"><a class="nav-link sk-nav-link" href="<?= $baseHref ?>index.html#teachers">Teachers</a></li>
           <li class="nav-item"><a class="nav-link sk-nav-link" href="<?= $baseHref ?>index.html#parents">Parents</a></li>
           <li class="nav-item"><a class="nav-link sk-nav-link" href="<?= $baseHref ?>index.html#students">Students</a></li>
-          <li class="nav-item"><a class="nav-link sk-nav-link active" href="<?= $baseHref ?>api-docs.php">API Docs</a></li>
+          <li class="nav-item"><a class="nav-link sk-nav-link active" href="<?= $baseHref ?>api-docs">API Docs</a></li>
         </ul>
         <div class="d-flex gap-2" id="nav-auth-buttons">
-          <a href="<?= $baseHref ?>login.php" class="btn btn-sk-outline">Log In</a>
-          <a href="<?= $baseHref ?>signup.php" class="btn btn-sk-primary">Sign Up</a>
+          <a href="<?= $baseHref ?>login" class="btn btn-sk-outline">Log In</a>
+          <a href="<?= $baseHref ?>signup" class="btn btn-sk-primary">Sign Up</a>
         </div>
       </div>
     </div>
@@ -67,9 +67,9 @@ $pageScript = $pageScript ?? '';
           <h4 class="text-white-50 text-uppercase small mb-3" style="letter-spacing:.05em;">Links</h4>
           <ul class="list-unstyled d-flex flex-column gap-2">
             <li><a href="<?= $baseHref ?>index.html#top">Home</a></li>
-            <li><a href="<?= $baseHref ?>dashboard/index.php">Advertiser Dashboard</a></li>
-            <li><a href="<?= $baseHref ?>admin/index.php">Admin</a></li>
-            <li><a href="<?= $baseHref ?>api-docs.php">API Docs</a></li>
+            <li><a href="<?= $baseHref ?>dashboard/index">Advertiser Dashboard</a></li>
+            <li><a href="<?= $baseHref ?>admin/index">Admin</a></li>
+            <li><a href="<?= $baseHref ?>api-docs">API Docs</a></li>
             <li><a href="#">Privacy</a></li>
             <li><a href="#">Terms</a></li>
           </ul>
@@ -102,10 +102,10 @@ $pageScript = $pageScript ?? '';
       .then(function (json) {
         if (!json.success || !json.data.loggedIn) return;
         var container = document.getElementById('nav-auth-buttons');
-        var dashboardHref = json.data.role === 'admin' ? '<?= $baseHref ?>admin/index.php' : '<?= $baseHref ?>dashboard/index.php';
+        var dashboardHref = json.data.role === 'admin' ? '<?= $baseHref ?>admin/index' : '<?= $baseHref ?>dashboard/index';
         container.innerHTML =
           '<a href="' + dashboardHref + '" class="btn btn-sk-outline">Dashboard</a>' +
-          '<a href="<?= $baseHref ?>dashboard/create-ad.php" class="btn btn-sk-primary">Create an Ad</a>';
+          '<a href="<?= $baseHref ?>dashboard/create-ad" class="btn btn-sk-primary">Create an Ad</a>';
       })
       .catch(function () { /* stay on Log In/Sign Up if the check fails */ });
   })();

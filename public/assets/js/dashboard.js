@@ -664,12 +664,12 @@
   function wireEditLinks(tbodyId, editHref) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    // Defaults to the advertiser's own create-ad.php, one directory
+    // Defaults to the advertiser's own create-ad, one directory
     // level from where this runs on my-ads.php. admin/ads.php passes
-    // '../dashboard/create-ad.php?edit=' instead, since that page
+    // '../dashboard/create-ad?edit=' instead, since that page
     // lives one level up and back down from /admin/ (10.n admin-edit
     // follow-up).
-    const target = editHref || 'create-ad.php?edit=';
+    const target = editHref || 'create-ad?edit=';
 
     tbody.addEventListener('click', function (e) {
       const btn = e.target.closest('[data-action="edit"]');

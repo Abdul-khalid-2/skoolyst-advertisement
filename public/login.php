@@ -8,11 +8,11 @@ use App\Auth\UserRepository;
 Core\Env::load(__DIR__ . '/../.env');
 
 // Already logged in? Skip the form and go straight to the right place —
-// same role check pattern as dashboard/index.php and admin/index.php.
+// same role check pattern as dashboard/index and admin/index.
 $existingUserId = Middleware::checkSession();
 if ($existingUserId !== null) {
     $existingUser = (new UserRepository())->findById($existingUserId);
-    header('Location: ' . ($existingUser !== null && $existingUser->isAdmin() ? 'admin/index.php' : 'dashboard/my-ads.php'));
+    header('Location: ' . ($existingUser !== null && $existingUser->isAdmin() ? 'admin/index' : 'dashboard/my-ads'));
     exit;
 }
 
@@ -69,11 +69,11 @@ $ssoError = isset($_GET['sso_error']);
       <span class="text-muted small">or</span>
       <hr class="flex-grow-1">
     </div>
-    <a href="auth/skoolyst.php" class="btn btn-sk-outline w-100">
+    <a href="auth/skoolyst" class="btn btn-sk-outline w-100">
       <i class="bi bi-box-arrow-in-right me-1"></i> Login with Skoolyst
     </a>
 
-    <p class="sk-auth-footer">Don't have an account? <a href="signup.php">Sign up</a></p>
+    <p class="sk-auth-footer">Don't have an account? <a href="signup">Sign up</a></p>
   </div>
 </div>
 
@@ -128,7 +128,7 @@ $ssoError = isset($_GET['sso_error']);
           btn.textContent = originalBtnText;
           return;
         }
-        window.location.href = result.json.data.role === 'admin' ? 'admin/index.php' : 'dashboard/my-ads.php';
+        window.location.href = result.json.data.role === 'admin' ? 'admin/index' : 'dashboard/my-ads';
       })
       .catch(function () {
         alertError.textContent = 'Network error — please try again.';
