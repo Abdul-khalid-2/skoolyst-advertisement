@@ -16,6 +16,7 @@ class UserModel
     public string $email;
     public string $passwordHash;
     public string $role;
+    public ?int $skoolystId;
     public string $createdAt;
 
     /**
@@ -29,6 +30,12 @@ class UserModel
         $user->email = (string) $row['email'];
         $user->passwordHash = (string) $row['password_hash'];
         $user->role = (string) $row['role'];
+        // isset() would treat a NULL column value as "not set" and skip
+        // the cast either way, but array_key_exists() makes the intent
+        // explicit: skoolyst_id really can be legitimately NULL here.
+        $user->skoolystId = array_key_exists('skoolyst_id', $row) && $row['skoolyst_id'] !== null
+            ? (int) $row['skoolyst_id']
+            : null;
         $user->createdAt = (string) $row['created_at'];
 
         return $user;

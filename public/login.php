@@ -17,6 +17,7 @@ if ($existingUserId !== null) {
 }
 
 $registered = isset($_GET['registered']);
+$ssoError = isset($_GET['sso_error']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,6 +64,15 @@ $registered = isset($_GET['registered']);
       <button type="submit" class="btn btn-sk-primary w-100" id="btn-login">Log In</button>
     </form>
 
+    <div class="d-flex align-items-center gap-2 my-3">
+      <hr class="flex-grow-1">
+      <span class="text-muted small">or</span>
+      <hr class="flex-grow-1">
+    </div>
+    <a href="auth/skoolyst.php" class="btn btn-sk-outline w-100">
+      <i class="bi bi-box-arrow-in-right me-1"></i> Login with Skoolyst
+    </a>
+
     <p class="sk-auth-footer">Don't have an account? <a href="signup.php">Sign up</a></p>
   </div>
 </div>
@@ -75,7 +85,12 @@ $registered = isset($_GET['registered']);
   var alertSuccess = document.getElementById('alert-success');
   var alertError = document.getElementById('alert-error');
   var registered = <?= $registered ? 'true' : 'false' ?>;
+  var ssoError = <?= $ssoError ? 'true' : 'false' ?>;
   if (registered) alertSuccess.style.display = 'block';
+  if (ssoError) {
+    alertError.textContent = 'Could not log in with Skoolyst. Please try again.';
+    alertError.style.display = 'block';
+  }
 
   var btn = document.getElementById('btn-login');
   var originalBtnText = btn.textContent;
